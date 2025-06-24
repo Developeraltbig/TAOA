@@ -50,95 +50,79 @@ router.post(
       }
 
       const prompt = `You are an expert patent prosecutor analyzing a §102 rejection to identify genuine differentiating features and propose strategic claim amendments.
-
 PROVIDED INPUTS:
-1. Rejected Independent Claim from Client's Patent Application
-2. Complete Specification of Client's Patent Application  
-3. Examiner's Detailed Rejection Reasoning
-4. Complete Specification of the Cited Prior Art Reference
-
+1.	Rejected Independent Claim from Client's Patent Application
+2.	Complete Specification of Client's Patent Application
+3.	Examiner's Detailed Rejection Reasoning
+4.	Complete Specification of the Cited Prior Art Reference
 YOUR TASK:
-
-PART 1 - COMPREHENSIVE ANALYSIS (Free-form narrative)
-Write a detailed analytical essay that:
-
+PART 1 - COMPREHENSIVE ANALYSIS (Free-form narrative) Write a detailed analytical essay that:
 a) Understands the rejected claim in light of its specification
-   - Break down each claim element
-   - Identify the technical problem and inventive concept
-   - Note critical specification support (para/fig numbers)
-
+•	Break down each claim element
+•	Identify the technical problem and inventive concept
+•	Note critical specification support (para/fig numbers)
+•	Determine if claim is structural, functional, or hybrid
 b) Dissects the examiner's rejection
-   - Identify exact prior art portions cited (para/col/line numbers)
-   - Understand examiner's element mapping
-   - Spot any misinterpretations or overreach
-
+•	Identify exact prior art portions cited (para/col/line numbers)
+•	Understand examiner's element mapping
+•	Spot any misinterpretations or overreach
 c) Performs deep technical comparison
-   - Is this a structural or functional claim?
-   - Apply key doctrines: inherency, functional claiming equivalence
-   - For each potential difference, evaluate:
-     * Is it truly absent from prior art?
-     * Does it provide unexpected advantages?
-     * Is it more than an obvious design choice?
-   - Consider what prior art actually teaches vs examiner's interpretation
-
+•	Apply key doctrines: inherency, functional claiming equivalence
+•	For each potential difference, evaluate: 
+o	Is it truly absent from prior art?
+o	Does it provide unexpected advantages?
+o	Is it more than an obvious design choice?
+•	Consider what prior art actually teaches vs examiner's interpretation
 d) Identifies the strongest differentiating features
-   - Focus on features that solve unrecognized problems
-   - Highlight non-obvious technical advantages
-   - Ensure specification support exists
-
+•	Focus on features that solve unrecognized problems
+•	Highlight non-obvious technical advantages
+•	Ensure specification support exists
 This should be a thorough, story-telling analysis that builds your case.
-
 PART 2 - STRUCTURED OUTPUTS
-
 Based on your analysis above, provide ONLY these two outputs:
-
-1. TECHNICAL COMPARISON TABLE:
+1.	TECHNICAL COMPARISON TABLE (20-30 WORDS PER CELL):
+\`\`\`json
 {
   "comparisonTable": [
     {
       "featureNumber": 1,
-      "subjectApplication": "Describe what the claim/specification teaches for this feature, with exact language where relevant [Spec Para X, Lines Y-Z or Claim X]",
-      "priorArt": "Describe what the prior art actually discloses regarding this feature [Prior Art Para A, Col B, Lines C-D] or state 'Prior art does not disclose [specific feature]. Examiner cites [X] which only teaches [Y]'",
-      "differentiatingFeature": "The subject application differs by [specific technical distinction]. This distinction is significant because [technical advantage/unexpected result/problem solved that prior art does not address]"
+      "subjectApplication": "Concise description of claimed feature [Spec ref]",
+      "priorArt": "What prior art shows/lacks [Prior art ref]",
+      "differentiatingFeature": "Key technical distinction and its significance"
     }
   ]
 }
-Limit to 4-5 strongest differentiating features that can overcome the rejection.
+\`\`\`
+WORD LIMIT: Strictly 20-30 words per cell. Be precise and technical. Limit to 4-5 strongest differentiating features.
 2.	STRATEGIC CLAIM AMENDMENT:
+\`\`\`json
 {
   "amendedClaim": {
-    "preamble": "A [device/method/system] for [purpose], comprising:",
+    "preamble": "[Keep original or minimally modify]",
     "elements": [
       {
         "elementId": "(a)",
-        "text": "complete element text with any amendments incorporated"
-      },
-      {
-        "elementId": "(b)", 
-        "text": "complete element text with any amendments incorporated"
-      },
-      {
-        "elementId": "(c)",
-        "text": "complete element text with any amendments incorporated"
+        "text": "[Original element with minimal amendments if needed]"
       }
     ],
     "additionalElements": [
       {
-        "elementId": "(d)",
-        "text": "any new elements added to distinguish over prior art"
+        "elementId": "(x)",
+        "text": "[New wherein clause or element only if essential]"
       }
     ]
   },
-  "amendmentStrategy": "Explain how these amendments: (1) distinguish over the cited prior art, (2) maintain broad commercial scope, (3) are fully supported by the specification, and (4) avoid introducing indefiniteness or other issues"
+  "amendmentStrategy": "Explain how these amendments: (1) distinguish over prior art, (2) maintain broad scope, (3) have full spec support, (4) avoid legal issues"
 }
+\`\`\`
 IMPORTANT NOTE ON JSON DATA: Each of the json output – first, the comparison one should start with \`\`\`json and end with \`\`\`. Same for the next json output of amendment to start with \`\`\`json and end with \`\`\`.
-AMENDMENT GUIDELINES:
-•	Add limitations that meaningfully distinguish while preserving commercial value
-•	Use clear, definite language supported by the specification
-•	Avoid unnecessarily narrow limitations unless required
-•	Consider adding functional language tied to the inventive concept
-•	Ensure all antecedent basis is proper
-•	Think about enforcement and design-around concerns
+AMENDMENT PRINCIPLES: ✓ MINIMAL CHANGES - Don't rewrite, refine ✓ Prefer "wherein" clauses over restructuring ✓ Structural claims → structural amendments (no functional language that risks MPF) ✓ Method claims → maintain step format ✓ Add narrowest distinguishing feature that works ✓ Avoid creating 112(a)/(b)/(f) issues ✓ Consider ease of infringement detection ✓ Pull from dependent claims when helpful
+LEGAL SAFEGUARDS:
+•	No means-plus-function triggers
+•	Clear antecedent basis
+•	Definite claim boundaries
+•	Full written description support
+Remember: Precision over revision. Add only what's necessary to win, keeping claims as broad as legally possible.
 Remember: The free-form analysis should comprehensively explore the technical distinctions. The structured outputs should provide clear, actionable deliverables for responding to the Office Action.
 Rejected Independent Claim from Client's Patent Application: ${subjectClaims}
 Complete Specification of Client's Patent Application: ${subjectDescription}

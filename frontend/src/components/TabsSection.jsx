@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import { setDocketId } from "../store/slices/authUserSlice";
+import { setIsSidebarMenuVisible } from "../store/slices/modalsSlice";
 import { setShowDocket } from "../store/slices/applicationDocketsSlice";
 
 const TabsSection = ({ data, children }) => {
@@ -18,6 +20,7 @@ const TabsSection = ({ data, children }) => {
   const showDocket = useSelector(
     (state) => state.applicationDockets?.showDocket[data._id]
   );
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 1024);
 
   const toggleShowDocketTab = () => {
     dispatch(
@@ -30,12 +33,27 @@ const TabsSection = ({ data, children }) => {
     if (location.pathname.includes("application")) {
       navigate("/technicalcomparison");
     }
+    if (isSmallScreen) {
+      dispatch(setIsSidebarMenuVisible(false));
+    }
   };
 
   const handleTabClick = (e, path) => {
     e.preventDefault();
     navigate(path);
+    if (isSmallScreen) {
+      dispatch(setIsSidebarMenuVisible(false));
+    }
   };
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSmallScreen(window.innerWidth <= 1024);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   return (
     <>

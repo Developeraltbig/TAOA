@@ -12,6 +12,7 @@ import UserInteraction from "./pages/UserInteraction";
 import ProtectedRoutes from "./layouts/ProtectedRoutes";
 import CompositeAmendments from "./pages/CompositeAmendments";
 import TechnicalComparison from "./pages/TechnicalComparison";
+import ApplicationsHistory from "./pages/ApplicationsHistory";
 import LayoutWithoutSidebar from "./layouts/LayoutWithoutSidebar";
 
 import "./App.css";
@@ -26,6 +27,7 @@ function App() {
 
         <Route element={<SidebarLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
+          <Route path="history" element={<ApplicationsHistory />} />
           <Route element={<ProtectedRoutes />}>
             <Route path="application" element={<Application />} />
             <Route

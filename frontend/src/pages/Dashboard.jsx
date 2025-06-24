@@ -13,7 +13,7 @@ import { post } from "../services/ApiEndpoint";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { clearShowState } from "../store/slices/applicationDocketsSlice";
-import { setLatestApplication } from "../store/slices/latestApplicationsSlice";
+import { addOrUpdateApplication } from "../store/slices/latestApplicationsSlice";
 import ApplicationAnalyseSkeleton from "../skeletons/ApplicationAnalyseSkeleton";
 
 const Dashboard = () => {
@@ -26,9 +26,6 @@ const Dashboard = () => {
   );
   const isApplicationUploading = useSelector(
     (state) => state.loading.isApplicationUploading
-  );
-  const latestApplication = useSelector(
-    (state) => state.applications.latestApplication
   );
   const authUser = useSelector((state) => state.user.authUser);
   const [applicationNumber, setApplicationNumber] = useState("");
@@ -47,19 +44,7 @@ const Dashboard = () => {
         token: authUser.token,
         appNumber: applicationNumber,
       });
-      const updatedData = ((prevData) => {
-        const index = prevData.findIndex(
-          (data) => data._id === response.data.data._id
-        );
-        const newData = [...prevData];
-        if (index !== -1) {
-          newData.splice(index, 1);
-        } else if (newData.length === 3) {
-          newData.pop();
-        }
-        return [response.data.data, ...newData];
-      })(latestApplication);
-      dispatch(setLatestApplication(updatedData));
+      dispatch(addOrUpdateApplication(response.data.data));
       dispatch(setApplicationId(response.data.data.applicationId));
       navigate("/application");
     } catch (error) {
@@ -105,19 +90,7 @@ const Dashboard = () => {
         },
       });
 
-      const updatedData = ((prevData) => {
-        const index = prevData.findIndex(
-          (data) => data._id === response.data.data._id
-        );
-        const newData = [...prevData];
-        if (index !== -1) {
-          newData.splice(index, 1);
-        } else if (newData.length === 3) {
-          newData.pop();
-        }
-        return [response.data.data, ...newData];
-      })(latestApplication);
-      dispatch(setLatestApplication(updatedData));
+      dispatch(addOrUpdateApplication(response.data.data));
       dispatch(setApplicationId(response.data.data.applicationId));
       navigate("/application");
     } catch (error) {
@@ -162,6 +135,10 @@ const Dashboard = () => {
       }
     };
   }, [isApplicationAnalysing, isApplicationUploading]);
+
+  useEffect(() => {
+    dispatch(clearShowState());
+  }, []);
 
   return (
     <div className="flex flex-col gap-6 px-4 sm:px-8 md:px-12 lg:px-16 pt-16 pb-10 transition-all duration-300 ease-in min-w-0">

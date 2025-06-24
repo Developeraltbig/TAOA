@@ -1,10 +1,12 @@
 import TabsSection from "./TabsSection";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   clearDocketState,
   setShowApplication,
 } from "../store/slices/applicationDocketsSlice";
 import { useDispatch, useSelector } from "react-redux";
+import { setIsSidebarMenuVisible } from "../store/slices/modalsSlice";
 import { setDocketId, setApplicationId } from "../store/slices/authUserSlice";
 
 const formatClaims = (claims = []) => {
@@ -39,6 +41,7 @@ const DocketsSection = ({ data, children }) => {
     (state) => state.applicationDockets?.showApplication[data.applicationId]
   );
   const applicationDockets = useSelector((state) => state.applicationDockets);
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 1024);
 
   const toggleShowTab = () => {
     dispatch(
@@ -54,7 +57,19 @@ const DocketsSection = ({ data, children }) => {
     dispatch(setApplicationId(data.applicationId));
     dispatch(setDocketId(null));
     navigate("/application");
+    if (isSmallScreen) {
+      dispatch(setIsSidebarMenuVisible(false));
+    }
   };
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSmallScreen(window.innerWidth <= 1024);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   return (
     <>

@@ -548,6 +548,23 @@ router.post(
   }
 );
 
+router.post("/fetchAllApplication", verifyToken, async (req, res, next) => {
+  const user = req.user;
+  try {
+    const applications = await ApplicationDetails.find({
+      user: user.userId,
+    }).sort({ updatedAt: -1 });
+
+    res.status(200).json({
+      status: "success",
+      message: `Successfully fetched all application`,
+      data: applications,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post(
   "/uploadClaims",
   upload.single("file"),
@@ -589,10 +606,8 @@ router.post(
       }
 
       if (
-        (Object.keys(applicationExist).length > 0 &&
-          applicationExist?.applicationId !== applicationId) ||
-        (!text.toLowerCase().includes("amendments to the claims") &&
-          !text.toLowerCase().includes("in the claims"))
+        Object.keys(applicationExist).length > 0 &&
+        applicationExist?.applicationId !== applicationId
       ) {
         return res.status(400).json({
           status: "error",

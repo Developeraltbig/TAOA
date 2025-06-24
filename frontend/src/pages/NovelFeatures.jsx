@@ -14,11 +14,11 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { ChevronsRight, ChevronsDown } from "lucide-react";
 import ConfirmationModal from "../components/ConfirmationModal";
-import OrbitingRingsLoader from "../Loaders/OrbitingRingsLoader";
+import OrbitingRingsLoader from "../loaders/OrbitingRingsLoader";
 import DocketsContentPanel from "../components/DocketsContentPanel";
 import DocketsHeaderSection from "../components/DocketsHeaderSection";
 import DocketsToggleButtons from "../components/DocketsToggleButtons";
-import { setLatestApplication } from "../store/slices/latestApplicationsSlice";
+import { updateDocketData } from "../store/slices/latestApplicationsSlice";
 
 const NovelFeatures = () => {
   const dispatch = useDispatch();
@@ -142,23 +142,14 @@ const NovelFeatures = () => {
       //     data: docketData,
       //   });
       // }
-      const updatedData = latestApplications.map((prev) => {
-        if (prev.applicationId === applicationId) {
-          const updatedObj = { ...prev };
-          const updatedDockets = updatedObj.dockets.map((docket) => {
-            if (docket._id === docketId) {
-              const docketObj = { ...docket };
-              docketObj.novelData = response.data.data;
-              return docketObj;
-            }
-            return docket;
-          });
-          updatedObj.dockets = updatedDockets;
-          return updatedObj;
-        }
-        return prev;
-      });
-      dispatch(setLatestApplication(updatedData));
+      dispatch(
+        updateDocketData({
+          applicationId: applicationId,
+          docketId: docketId,
+          name: "novelData",
+          value: response.data.data,
+        })
+      );
     } catch (error) {
       if (enviroment === "development") {
         console.log(error);
@@ -210,26 +201,6 @@ const NovelFeatures = () => {
       analyseNovelFeatures(activeApplicationId, activeDocketId);
     }
   }, [docketData]);
-
-  useEffect(() => {
-    if (isLatestApplicationLoading) {
-      dispatch(
-        setApplicationRejections({
-          rejectionId: activeDocketId,
-          name: "isNovelFeaturesLoading",
-          value: true,
-        })
-      );
-    } else {
-      dispatch(
-        setApplicationRejections({
-          rejectionId: activeDocketId,
-          name: "isNovelFeaturesLoading",
-          value: false,
-        })
-      );
-    }
-  }, [isLatestApplicationLoading]);
 
   useEffect(() => {
     if (activeDocketId && activeApplicationId) {

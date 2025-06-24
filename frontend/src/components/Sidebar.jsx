@@ -6,8 +6,8 @@ import {
 import { toast } from "react-toastify";
 import { useEffect, useState } from "react";
 import DocketsSection from "./DocketsSection";
-import { post } from "../services/ApiEndpoint";
 import { useNavigate } from "react-router-dom";
+import { post } from "../services/ApiEndpoint";
 import {
   clearShowState,
   clearDocketState,
@@ -37,6 +37,7 @@ const Sidebar = () => {
   const authUser = useSelector((state) => state.user.authUser);
   const applicationDockets = useSelector((state) => state.applicationDockets);
   const [isSidebarMenuRendering, setIsSidebarMenuRendering] = useState(false);
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 1024);
 
   const handleSidebarMenuToggle = () => {
     if (!isSidebarMenuVisible) {
@@ -58,6 +59,9 @@ const Sidebar = () => {
     dispatch(setDocketId(null));
     dispatch(setApplicationId(null));
     navigate("/dashboard");
+    if (isSmallScreen) {
+      dispatch(setIsSidebarMenuVisible(false));
+    }
   };
 
   const fetchApplication = async () => {
@@ -92,6 +96,15 @@ const Sidebar = () => {
     }
   };
 
+  const handleProjectHistoryClick = (e) => {
+    e.preventDefault();
+    dispatch(clearShowState());
+    navigate("/history");
+    if (isSmallScreen) {
+      dispatch(setIsSidebarMenuVisible(false));
+    }
+  };
+
   useEffect(() => {
     const isMediumScreen = window.matchMedia("(min-width: 1024px)").matches;
     if (isMediumScreen) {
@@ -103,6 +116,15 @@ const Sidebar = () => {
       dispatch(setIsSidebarMenuVisible(false));
       setIsSidebarMenuRendering(false);
     }
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSmallScreen(window.innerWidth <= 1024);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
@@ -235,7 +257,10 @@ const Sidebar = () => {
               )}
             </div>
             <div className="flex flex-col gap-3 items-start mt-4">
-              <button className="cursor-pointer flex items-center gap-2 text-[#504d4d] font-bold">
+              <button
+                className="cursor-pointer flex items-center gap-2 text-[#504d4d] font-bold"
+                onClick={handleProjectHistoryClick}
+              >
                 <i className="fa-solid fa-code"></i>Project History
               </button>
               <button className="cursor-pointer flex items-center gap-2 text-[#504d4d] font-bold">
