@@ -1,9 +1,9 @@
-import { Check } from "lucide-react";
 import { toast } from "react-toastify";
 import {
   clearUserSlice,
   setApplicationId,
 } from "../store/slices/authUserSlice";
+import { ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { post } from "../services/ApiEndpoint";
 import { useNavigate } from "react-router-dom";
@@ -30,6 +30,23 @@ const filterRejection = (rejections) => {
     reject103,
     reject112,
   };
+};
+
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+
+  if (isNaN(date.getTime())) {
+    return "-";
+  }
+
+  const options = {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  };
+
+  return date.toLocaleDateString("en-US", options);
 };
 
 const ApplicationsHistory = () => {
@@ -122,123 +139,141 @@ const ApplicationsHistory = () => {
 
   return (
     <>
-      <div className="min-h-full px-4 sm:px-8 md:px-12 lg:px-16 pt-16 pb-18 flex items-center flex-col gap-12">
-        <header className="text-[calc(1rem+0.9vw)] font-[700] w-full">
-          <h2>
-            Hello,{" "}
-            <span className="text-[#38b6ff] font-bold">
-              {authUser.name.split(" ")[0]}
-            </span>
-          </h2>
-          <h5>Ready to review your past applications?</h5>
-        </header>
-        <form
-          className="w-4/5 md:w-2/3 lg:w-1/2 shadow-md -shadow-md h-fit rounded-md"
-          role="search"
-        >
+      <div className="min-h-full px-4 sm:px-8 md:px-12 lg:px-16 pt-16 pb-18">
+        <div className="mb-10">
+          <h1 className="text-2xl font-bold text-slate-800 mb-2">Projects</h1>
+          <p className="text-base text-slate-600">
+            Track and manage your patent application rejections
+          </p>
+        </div>
+
+        <div className="relative max-w-md mb-8">
+          <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-base"></i>
           <input
-            className="block w-full px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md focus:border-blue-500 focus:ring-blue-500 focus:outline-none focus:ring focus:ring-opacity-40"
             type="search"
-            placeholder="Enter application number"
-            aria-label="Enter application number"
+            className="w-full py-3 pl-11 pr-4 border-2 border-slate-200 rounded-lg text-sm transition-all duration-200 focus:outline-none focus:border-blue-500 focus:shadow-outline-blue bg-white"
+            placeholder="Search by application number"
+            aria-label="Search by application number"
             value={searchValue}
             onChange={handleInputChange}
             required
           />
-        </form>
+        </div>
 
         {isAllApplicationsLoading ? (
           <AllApplicationsSkeleton />
         ) : searchedApplications.length ? (
-          <table className="w-full border-collapse border border-gray-300 text-center">
-            <thead>
-              <tr className="bg-[#0284c7]">
-                {/* First Row */}
-                <th
-                  className="py-2 px-4 text-md font-bold text-white max-[425px]:px-2 border-r border-gray-300"
-                  rowSpan="2"
-                >
-                  Application No.
-                </th>
-                <th
-                  className="py-2 px-4 text-md font-bold text-white max-[425px]:px-2 border-r border-b border-gray-300"
-                  colSpan="4"
-                >
-                  Rejection Type
-                </th>
-                <th
-                  className="py-2 px-4 text-md font-bold text-white max-[425px]:px-2"
-                  rowSpan="2"
-                >
-                  Last Modified Time
-                </th>
-              </tr>
-              <tr className="bg-[#0284c7]">
-                {/* Second Row */}
-                <th className="py-2 px-4 text-md font-bold text-white max-[425px]:px-2 border-r border-gray-300">
-                  101
-                </th>
-                <th className="py-2 px-4 text-md font-bold text-white max-[425px]:px-2 border-r border-gray-300">
-                  102
-                </th>
-                <th className="py-2 px-4 text-md font-bold text-white max-[425px]:px-2 border-r border-gray-300">
-                  103
-                </th>
-                <th className="py-2 px-4 text-md font-bold text-white max-[425px]:px-2 border-r border-gray-300">
-                  112
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {searchedApplications.map((application, index) => {
-                const { reject101, reject102, reject103, reject112 } =
-                  filterRejection(application.rejections);
-                const checkMark = (
-                  <div className="flex justify-center">
-                    <Check color="green" />
-                  </div>
-                );
-
-                return (
-                  <tr
-                    key={index}
-                    className={`border-b border-gray-200 ${
-                      index % 2 === 0 ? "bg-gray-200" : "bg-white"
-                    } hover:bg-gray-200/50`}
-                  >
-                    <td className="py-2 px-4 text-base font-semibold max-[425px]:px-2 border-r border-gray-300">
-                      <span
-                        className="text-blue-600 cursor-pointer hover:underline"
-                        onClick={(e) =>
-                          handleApplicationClick(
-                            application.applicationNumber,
-                            e
-                          )
-                        }
-                      >
-                        {application.applicationNumber}
-                      </span>
-                    </td>
-                    <td className="py-2 px-4 text-base font-semibold text-gray-800 max-[425px]:px-2 border-r border-gray-300 text-center">
-                      {reject101 ? checkMark : "-"}
-                    </td>
-                    <td className="py-2 px-4 text-base font-semibold text-gray-800 max-[425px]:px-2 border-r border-gray-300">
-                      {reject102 ? checkMark : "-"}
-                    </td>
-                    <td className="py-2 px-4 text-base font-semibold text-gray-800 max-[425px]:px-2 border-r border-gray-300">
-                      {reject103 ? checkMark : "-"}
-                    </td>
-                    <td className="py-2 px-4 text-base font-semibold text-gray-800 max-[425px]:px-2 border-r border-gray-300">
-                      {reject112 ? checkMark : "-"}
-                    </td>
-                    <td className="py-2 px-4 text-sm font-semibold text-gray-800 max-[425px]:px-2">
-                      {application.updatedAt.split("T")[0]}
-                    </td>
+          <>
+            <div className="bg-white rounded-xl overflow-hidden shadow-sm">
+              <table className="min-w-full table-auto">
+                <thead className="bg-[#0284c7]">
+                  <tr className="text-white">
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
+                      Application Number
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">
+                      §101
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">
+                      §102
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">
+                      §103
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">
+                      §112
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
+                      Last Modified
+                    </th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {searchedApplications.map((project, index) => {
+                    const { reject101, reject102, reject103, reject112 } =
+                      filterRejection(project.rejections);
+                    return (
+                      <tr key={index} className="hover:bg-slate-50">
+                        <td className="px-6 py-5 whitespace-nowrap border-t border-slate-100">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-800 text-base">
+                              {project.applicationNumber}
+                            </span>
+                            <button
+                              onClick={(e) =>
+                                handleApplicationClick(
+                                  project.applicationNumber,
+                                  e
+                                )
+                              }
+                              className="cursor-pointer"
+                            >
+                              <ExternalLink size={16} />
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5 whitespace-nowrap border-t border-slate-100 text-center">
+                          <span
+                            className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-xs font-semibold ${
+                              reject101
+                                ? "bg-blue-500 text-white"
+                                : "bg-slate-100 text-slate-400"
+                            }`}
+                          >
+                            {reject101 ? "✓" : "—"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 whitespace-nowrap border-t border-slate-100 text-center">
+                          <span
+                            className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-xs font-semibold ${
+                              reject102
+                                ? "bg-blue-500 text-white"
+                                : "bg-slate-100 text-slate-400"
+                            }`}
+                          >
+                            {reject102 ? "✓" : "—"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 whitespace-nowrap border-t border-slate-100 text-center">
+                          <span
+                            className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-xs font-semibold ${
+                              reject103
+                                ? "bg-blue-500 text-white"
+                                : "bg-slate-100 text-slate-400"
+                            }`}
+                          >
+                            {reject103 ? "✓" : "—"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 whitespace-nowrap border-t border-slate-100 text-center">
+                          <span
+                            className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-xs font-semibold ${
+                              reject112
+                                ? "bg-blue-500 text-white"
+                                : "bg-slate-100 text-slate-400"
+                            }`}
+                          >
+                            {reject112 ? "✓" : "—"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 whitespace-nowrap border-t border-slate-100">
+                          <span className="text-slate-600 text-sm">
+                            {formatDate(project.updatedAt)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-4 text-slate-500 text-sm">
+              <i className="fas fa-info-circle mr-2"></i>
+              <strong>Rejection Types:</strong> §101 (Eligibility) • §102 (Prior
+              Art) • §103 (Obviousness) • §112 (Specification)
+            </div>
+          </>
         ) : (
           <div>
             <span className="font-semibold text-2xl mt-">

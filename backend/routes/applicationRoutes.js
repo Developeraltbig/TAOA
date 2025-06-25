@@ -581,6 +581,18 @@ router.post(
         });
       }
 
+      let updatedApplication = await ApplicationDetails.findOne({
+        applicationId,
+        user: user.userId,
+      });
+
+      if (!updatedApplication) {
+        return res.status(400).json({
+          status: "error",
+          message: "Application doesn't exist.",
+        });
+      }
+
       let text;
       if (file.mimetype === "application/pdf") {
         const uploadedPdfURL = await uploadPdf(file.originalname, file.buffer);
@@ -631,6 +643,13 @@ router.post(
         (claim) => claim.independentClaim
       );
 
+      if (!text) {
+        return res.status(400).json({
+          status: "error",
+          message: "Claims extraction failed! Please try again.",
+        });
+      }
+
       await ApplicationDocuments.findOneAndUpdate(
         {
           applicationId,
@@ -650,7 +669,7 @@ router.post(
         }
       );
 
-      const updatedApplication = await ApplicationDetails.findOneAndUpdate(
+      updatedApplication = await ApplicationDetails.findOneAndUpdate(
         {
           applicationId,
           user: user.userId,
@@ -775,6 +794,13 @@ router.post("/fetchSubjectDescription", verifyToken, async (req, res, next) => {
         (claim) => claim.independentClaim
       );
 
+      if (!subjectDescription.fullDescription || !subjectDescription.claims) {
+        return res.status(400).json({
+          status: "error",
+          message: "Failed to extract data from USPTO! Please try again.",
+        });
+      }
+
       await ApplicationDocuments.findOneAndUpdate(
         {
           applicationId,
@@ -819,6 +845,12 @@ router.post("/fetchSubjectDescription", verifyToken, async (req, res, next) => {
         }
       );
     } else {
+      if (!subjectDescription) {
+        return res.status(400).json({
+          status: "error",
+          message: "Failed to extract data from USPTO! Please try again.",
+        });
+      }
       await ApplicationDocuments.findOneAndUpdate(
         {
           applicationId,

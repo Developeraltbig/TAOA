@@ -35,6 +35,34 @@ import ApplicationAnalyseSkeleton from "../skeletons/ApplicationAnalyseSkeleton"
 
 import "./Application.css";
 
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+
+  if (isNaN(date.getTime())) {
+    return "-";
+  }
+
+  const day = date.getUTCDate();
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  const month = monthNames[date.getUTCMonth()];
+  const year = date.getUTCFullYear();
+
+  return `${day + 1} ${month}, ${year}`;
+};
+
 const Application = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -636,11 +664,7 @@ const Application = () => {
                           Filing Date
                         </h4>
                         <span className="text-[0.9rem] text-[#333] font-[500]">
-                          {
-                            data?.applicationDetails?.lastFilingDate?.split(
-                              "T"
-                            )[0]
-                          }
+                          {formatDate(data?.applicationDetails?.lastFilingDate)}
                         </span>
                       </div>
 

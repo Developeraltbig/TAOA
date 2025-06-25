@@ -196,7 +196,8 @@ const TechnicalComparison = () => {
         !Object.keys(docketData?.technicalData).length) ||
       (docketData &&
         Object.keys(docketData).length &&
-        docketData.technicalData === undefined)
+        docketData.technicalData === undefined &&
+        !isTechnicalClaimsLoading)
     ) {
       analyseTechnicalComparison(activeApplicationId, activeDocketId);
     }

@@ -211,7 +211,7 @@ const Navbar = () => {
                     <div className="border-t border-solid border-gray-200 my-2"></div>
                     <div className="w-full flex justify-center">
                       <a
-                        href="dashboard"
+                        // href="dashboard"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 cursor-pointer w-[90%] text-left mb-2 rounded-md"
                         role="menuitem"
                         id="user-menu-item-2"
