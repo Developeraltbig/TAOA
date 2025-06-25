@@ -3,10 +3,11 @@ import DocketsActionButtons from "./DocketsActionButton";
 
 const DocketsContentPanel = ({
   title,
-  headerContent,
   children,
   onDownload,
   onRegenerate,
+  onFullScreen,
+  headerContent,
 }) => {
   return (
     <div className="border-2 border-gray-400 rounded-lg bg-white h-full flex flex-col relative p-4">
@@ -41,6 +42,7 @@ const DocketsContentPanel = ({
         <DocketsActionButtons
           onDownload={onDownload}
           onRegenerate={onRegenerate}
+          onFullScreen={onFullScreen}
         />
       </div>
     </div>

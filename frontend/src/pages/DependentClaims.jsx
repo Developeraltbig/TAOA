@@ -13,6 +13,7 @@ import {
 } from "../store/slices/applicationDocketsSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { ChevronsRight, ChevronsDown } from "lucide-react";
+import FullScreenTable from "../components/FullScreenTable";
 import ConfirmationModal from "../components/ConfirmationModal";
 import OrbitingRingsLoader from "../loaders/OrbitingRingsLoader";
 import DocketsContentPanel from "../components/DocketsContentPanel";
@@ -39,6 +40,7 @@ const DependentClaims = () => {
   const [isExtraLargeScreen, setIsExtraLargeScreen] = useState(
     window.innerWidth >= 1280
   );
+  const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
   const activeDocketId = useSelector((state) => state.user.docketId);
   const activeApplicationId = useSelector((state) => state.user.applicationId);
   const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 1024);
@@ -68,6 +70,9 @@ const DependentClaims = () => {
     analyseDependentComparison(activeApplicationId, activeDocketId);
     handleCloseModal();
   };
+
+  const openFullScreen = () => setIsFullScreenOpen(true);
+  const closeFullScreen = () => setIsFullScreenOpen(false);
 
   const handleRegenerate = () => {
     handleOpenModal();
@@ -199,7 +204,8 @@ const DependentClaims = () => {
         !Object.keys(docketData?.dependentData).length) ||
       (docketData &&
         Object.keys(docketData).length &&
-        docketData.dependentData === undefined)
+        docketData.dependentData === undefined &&
+        !isDependentClaimsLoadingState)
     ) {
       analyseDependentComparison(activeApplicationId, activeDocketId);
     }
@@ -250,6 +256,13 @@ const DependentClaims = () => {
               }
               onDownload={() => handleDownload("left")}
               onRegenerate={() => handleRegenerate()}
+              onFullScreen={
+                leftViewMode === "Table" &&
+                !isDependentClaimsLoadingState &&
+                docketData?.dependentData?.comparisonTable
+                  ? openFullScreen
+                  : null
+              }
             >
               <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto overflow-x-hidden relative">
                 {isDependentClaimsLoadingState ? (
@@ -444,6 +457,12 @@ const DependentClaims = () => {
         message="This will regenerate the technical comparison and amendment claims suggestion."
         confirmButtonText="Regenerate"
         cancelButtonText="Cancel"
+      />
+      <FullScreenTable
+        isOpen={isFullScreenOpen}
+        onClose={closeFullScreen}
+        tableData={docketData?.dependentData?.comparisonTable}
+        tableHeading="Dependent Claims Table"
       />
     </>
   );

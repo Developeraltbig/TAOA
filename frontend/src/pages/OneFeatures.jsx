@@ -13,6 +13,7 @@ import {
 } from "../store/slices/applicationDocketsSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { ChevronsRight, ChevronsDown } from "lucide-react";
+import FullScreenTable from "../components/FullScreenTable";
 import ConfirmationModal from "../components/ConfirmationModal";
 import OrbitingRingsLoader from "../loaders/OrbitingRingsLoader";
 import DocketsContentPanel from "../components/DocketsContentPanel";
@@ -39,6 +40,7 @@ const OneFeatures = () => {
   const [isExtraLargeScreen, setIsExtraLargeScreen] = useState(
     window.innerWidth >= 1280
   );
+  const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
   const activeDocketId = useSelector((state) => state.user.docketId);
   const activeApplicationId = useSelector((state) => state.user.applicationId);
   const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 1024);
@@ -72,6 +74,9 @@ const OneFeatures = () => {
   const handleRegenerate = () => {
     handleOpenModal();
   };
+
+  const openFullScreen = () => setIsFullScreenOpen(true);
+  const closeFullScreen = () => setIsFullScreenOpen(false);
 
   const fetchDocketData = () => {
     if (
@@ -199,7 +204,8 @@ const OneFeatures = () => {
         !Object.keys(docketData?.oneFeaturesData).length) ||
       (docketData &&
         Object.keys(docketData).length &&
-        docketData.oneFeaturesData === undefined)
+        docketData.oneFeaturesData === undefined &&
+        !isOneFeaturesClaimsLoading)
     ) {
       analyseOneFeatures(activeApplicationId, activeDocketId);
     }
@@ -250,6 +256,13 @@ const OneFeatures = () => {
               }
               onDownload={() => handleDownload("left")}
               onRegenerate={() => handleRegenerate()}
+              onFullScreen={
+                leftViewMode === "Table" &&
+                !isOneFeaturesClaimsLoading &&
+                docketData?.oneFeaturesData?.comparisonTable
+                  ? openFullScreen
+                  : null
+              }
             >
               <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto overflow-x-hidden relative">
                 {isOneFeaturesClaimsLoading ? (
@@ -444,6 +457,12 @@ const OneFeatures = () => {
         message="This will regenerate the technical comparison and amendment claims suggestion."
         confirmButtonText="Regenerate"
         cancelButtonText="Cancel"
+      />
+      <FullScreenTable
+        isOpen={isFullScreenOpen}
+        onClose={closeFullScreen}
+        tableData={docketData?.oneFeaturesData?.comparisonTable}
+        tableHeading="One Features Table"
       />
     </>
   );
