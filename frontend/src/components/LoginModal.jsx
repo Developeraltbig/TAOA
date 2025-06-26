@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import { toast } from "react-toastify";
 import { useEffect, useState } from "react";
 import { post } from "../services/ApiEndpoint";
@@ -106,12 +107,12 @@ const LoginModal = () => {
         aria-labelledby="login-heading"
       >
         <button
-          aria-label="Close login modal"
-          className="absolute top-2.5 right-4 px-2 py-1 rounded-md border-3 border-transparent focus:border-[#38b6ff] cursor-pointer"
           onClick={() => dispatch(setIsLoginModalOpen(false))}
           disabled={isUserLoggingIn}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors duration-200 focus:outline-none cursor-pointer"
+          aria-label="Close"
         >
-          <i className="fa-solid fa-x"></i>
+          <X />
         </button>
 
         <h2 id="login-heading" className="font-bold text-3xl mb-6 text-center">

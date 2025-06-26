@@ -7,7 +7,7 @@ const DocketsActionButtons = ({ onDownload, onRegenerate, onFullScreen }) => {
         onClick={onDownload}
         className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-md hover:bg-gray-200 shadow-sm cursor-pointer transition-colors bg-white"
       >
-        Download Now
+        Download
       </button>
       <button
         onClick={onRegenerate}

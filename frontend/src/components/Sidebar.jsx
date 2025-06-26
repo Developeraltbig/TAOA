@@ -6,19 +6,20 @@ import {
 import { toast } from "react-toastify";
 import { useEffect, useState } from "react";
 import DocketsSection from "./DocketsSection";
-import { useNavigate } from "react-router-dom";
 import { post } from "../services/ApiEndpoint";
 import {
   clearShowState,
   clearDocketState,
 } from "../store/slices/applicationDocketsSlice";
 import { useDispatch, useSelector } from "react-redux";
+import { useLocation, useNavigate } from "react-router-dom";
 import { setIsSidebarMenuVisible } from "../store/slices/modalsSlice";
 import { setIsLatestApplicationLoading } from "../store/slices/loadingSlice";
 import { setLatestApplication } from "../store/slices/latestApplicationsSlice";
 import LatestApplicationSkeleton from "../skeletons/LatestApplicationSkeleton";
 
 const Sidebar = () => {
+  const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const enviroment = import.meta.env.VITE_ENV;
@@ -34,10 +35,18 @@ const Sidebar = () => {
   const isLatestApplicationLoading = useSelector(
     (state) => state.loading.isLatestApplicationLoading
   );
+  const accessingDockets =
+    location.pathname.includes("onefeatures") ||
+    location.pathname.includes("novelfeatures") ||
+    location.pathname.includes("userinteraction") ||
+    location.pathname.includes("dependentclaims") ||
+    location.pathname.includes("compositeamendments") ||
+    location.pathname.includes("technicalcomparison");
   const authUser = useSelector((state) => state.user.authUser);
   const applicationDockets = useSelector((state) => state.applicationDockets);
   const [isSidebarMenuRendering, setIsSidebarMenuRendering] = useState(false);
   const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 1024);
+  const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth <= 1536);
 
   const handleSidebarMenuToggle = () => {
     if (!isSidebarMenuVisible) {
@@ -106,21 +115,9 @@ const Sidebar = () => {
   };
 
   useEffect(() => {
-    const isMediumScreen = window.matchMedia("(min-width: 1024px)").matches;
-    if (isMediumScreen) {
-      // For md and above, sidebar should be open initially
-      dispatch(setIsSidebarMenuVisible(true));
-      setIsSidebarMenuRendering(true);
-    } else {
-      // For smaller screens, sidebar should be closed initially
-      dispatch(setIsSidebarMenuVisible(false));
-      setIsSidebarMenuRendering(false);
-    }
-  }, []);
-
-  useEffect(() => {
     const handleResize = () => {
       setIsSmallScreen(window.innerWidth <= 1024);
+      setIsLargeScreen(window.innerWidth <= 1536);
     };
 
     window.addEventListener("resize", handleResize);
@@ -130,6 +127,19 @@ const Sidebar = () => {
   useEffect(() => {
     fetchApplication();
   }, [loadLatestApplications]);
+
+  useEffect(() => {
+    if (isSmallScreen) {
+      dispatch(setIsSidebarMenuVisible(false));
+      setIsSidebarMenuRendering(false);
+    } else if (isLargeScreen && accessingDockets) {
+      dispatch(setIsSidebarMenuVisible(false));
+      setIsSidebarMenuRendering(false);
+    } else {
+      dispatch(setIsSidebarMenuVisible(true));
+      setIsSidebarMenuRendering(true);
+    }
+  }, [isSmallScreen, isLargeScreen, accessingDockets]);
 
   return (
     <>

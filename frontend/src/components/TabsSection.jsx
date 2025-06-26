@@ -20,7 +20,7 @@ const TabsSection = ({ data, children }) => {
   const showDocket = useSelector(
     (state) => state.applicationDockets?.showDocket[data._id]
   );
-  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 1024);
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 1536);
 
   const toggleShowDocketTab = () => {
     dispatch(
@@ -48,7 +48,7 @@ const TabsSection = ({ data, children }) => {
 
   useEffect(() => {
     const handleResize = () => {
-      setIsSmallScreen(window.innerWidth <= 1024);
+      setIsSmallScreen(window.innerWidth <= 1536);
     };
 
     window.addEventListener("resize", handleResize);

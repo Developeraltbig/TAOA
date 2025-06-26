@@ -18,7 +18,7 @@ const DocketsToggleButtons = ({
         <button
           key={index}
           onClick={() => handleSelection(option)}
-          className={`px-4 py-2 text-sm font-medium transition-colors rounded-md border border-gray-300 w-[110px] h-[2.35rem] cursor-pointer shadow-sm ${
+          className={`px-6 py-2 text-sm font-medium transition-colors rounded-md border border-gray-300 w-fit h-[2.35rem] cursor-pointer shadow-sm ${
             selected === option
               ? "bg-gray-200 text-gray-900"
               : "bg-white text-gray-600 hover:bg-gray-100"

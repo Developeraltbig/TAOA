@@ -11,8 +11,8 @@ const ProtectedRoutes = () => {
   const dispatch = useDispatch();
   const location = useLocation();
   const docketId = useSelector((state) => state.user.docketId);
-  const applicationId = useSelector((state) => state.user.applicationId);
   const accessingApplication = location.pathname.includes("application");
+  const applicationId = useSelector((state) => state.user.applicationId);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {

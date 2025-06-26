@@ -71,6 +71,11 @@ const technicalComparisonSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    rejectedClaim: {
+      type: String,
+      trim: true,
+      required: true,
+    },
   },
   {
     timestamps: true,

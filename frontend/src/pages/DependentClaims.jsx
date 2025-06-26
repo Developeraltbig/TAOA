@@ -14,6 +14,7 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { ChevronsRight, ChevronsDown } from "lucide-react";
 import FullScreenTable from "../components/FullScreenTable";
+import { formatTextByDelimiter } from "../helpers/formatText";
 import ConfirmationModal from "../components/ConfirmationModal";
 import OrbitingRingsLoader from "../loaders/OrbitingRingsLoader";
 import DocketsContentPanel from "../components/DocketsContentPanel";
@@ -24,9 +25,6 @@ import { updateDocketData } from "../store/slices/latestApplicationsSlice";
 const DependentClaims = () => {
   const dispatch = useDispatch();
   const enviroment = import.meta.env.VITE_ENV;
-  const isSidebarMenuVisible = useSelector(
-    (state) => state.modals.isSidebarMenuVisible
-  );
   const [docketData, setDocketData] = useState({});
   const latestApplications = useSelector(
     (state) => state.applications.latestApplication
@@ -42,8 +40,8 @@ const DependentClaims = () => {
   );
   const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
   const activeDocketId = useSelector((state) => state.user.docketId);
+  const [rightViewMode, setRightViewMode] = useState("Rejected Claim");
   const activeApplicationId = useSelector((state) => state.user.applicationId);
-  const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 1024);
 
   const currentApplicationRejections = useSelector(
     (state) => state.user.applicationRejections[activeDocketId]
@@ -188,7 +186,6 @@ const DependentClaims = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      setIsLargeScreen(window.innerWidth >= 1024);
       setIsExtraLargeScreen(window.innerWidth >= 1280);
     };
 
@@ -233,19 +230,9 @@ const DependentClaims = () => {
           loading={isLatestApplicationLoading && docketData !== null}
         />
 
-        <div
-          className={`flex flex-col xl:flex-row gap-4 space-y-6 xl:space-y-0 xl:h-[600px] p-3 sm:p-0 ${
-            isSidebarMenuVisible
-              ? "lg:flex-col"
-              : "lg:flex-row lg:space-y-0 lg:h-[600px]"
-          }`}
-        >
+        <div className="flex flex-col xl:flex-row gap-4 space-y-6 xl:space-y-0 xl:h-[600px] p-3 sm:p-0">
           {/* Left Panel */}
-          <div
-            className={`h-[600px] xl:flex-1 ${
-              isSidebarMenuVisible ? "" : "lg:flex-1"
-            }`}
-          >
+          <div className="h-[600px] xl:w-[calc(50%-24px)]">
             <DocketsContentPanel
               headerContent={
                 <DocketsToggleButtons
@@ -335,11 +322,7 @@ const DependentClaims = () => {
           </div>
 
           {/* Resize Handle */}
-          <div
-            className={`flex items-center justify-center w-full xl:w-8 h-full ${
-              isSidebarMenuVisible ? "" : "lg:w-8"
-            }`}
-          >
+          <div className="flex items-center justify-center w-full xl:w-8 h-full">
             <div className="inline-block relative">
               <button
                 className={`h-10 w-10 rounded-full bg-[#3586cb] flex items-center justify-center shadow-sm cursor-pointer text-white tooltip-trigger ${
@@ -352,17 +335,7 @@ const DependentClaims = () => {
                 onClick={handleAmendClaimsClick}
                 disabled={isDependentClaimsLoadingState}
               >
-                {isLargeScreen ? (
-                  isExtraLargeScreen ? (
-                    <ChevronsRight />
-                  ) : isSidebarMenuVisible ? (
-                    <ChevronsDown />
-                  ) : (
-                    <ChevronsRight />
-                  )
-                ) : (
-                  <ChevronsDown />
-                )}
+                {isExtraLargeScreen ? <ChevronsRight /> : <ChevronsDown />}
               </button>
               <div
                 className="
@@ -381,27 +354,30 @@ const DependentClaims = () => {
           </div>
 
           {/* Right Panel */}
-          <div
-            className={`h-[600px] xl:flex-1 ${
-              isSidebarMenuVisible ? "" : "lg:flex-1"
-            }`}
-          >
+          <div className="h-[600px] xl:w-[calc(50%-24px)]">
             <DocketsContentPanel
-              title="Suggested Claim Amendment"
+              headerContent={
+                <DocketsToggleButtons
+                  options={["Rejected Claim", "Suggested Amendment"]}
+                  defaultSelected={rightViewMode}
+                  onSelectionChange={setRightViewMode}
+                />
+              }
               onDownload={() => handleDownload("right")}
               onRegenerate={() => handleRegenerate()}
             >
               <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto">
-                {!docketData?.dependentData?.amendedClaim ||
-                !isDependentClaimsAmendedState ? (
+                {!isDependentClaimsLoadingState ||
+                isDependentClaimsAmendedState ? (
                   <div className="w-full h-full flex items-center justify-center">
                     <p className="text-gray-500">
-                      Suggested claim amendment content would appear here
+                      {rightViewMode} content would appear here
                     </p>
                   </div>
-                ) : (
+                ) : rightViewMode === "Suggested Amendment" &&
+                  docketData?.dependentData?.amendedClaim ? (
                   <div className="space-y-4">
-                    <p className="text-[1.05rem] text-justify leading-relaxed">
+                    <p className="text-[1rem] text-justify leading-relaxed">
                       <span className="font-semibold text-gray-800">
                         {docketData.rejectedClaims?.[0]}.
                       </span>{" "}
@@ -442,6 +418,27 @@ const DependentClaims = () => {
                         </p>
                       </div>
                     )}
+                  </div>
+                ) : rightViewMode === "Rejected Claim" &&
+                  docketData?.dependentData?.rejectedClaim ? (
+                  <div className="flex justify-center space-x-2">
+                    <span className="font-semibold text-gray-800 pt-[1px]">
+                      {docketData.rejectedClaims?.[0]}.
+                    </span>{" "}
+                    <p
+                      className="text-[1rem] text-justify leading-relaxed"
+                      dangerouslySetInnerHTML={{
+                        __html: formatTextByDelimiter(
+                          docketData.dependentData.rejectedClaim
+                        ),
+                      }}
+                    ></p>
+                  </div>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <p className="text-gray-500">
+                      {rightViewMode} content would appear here
+                    </p>
                   </div>
                 )}
               </div>

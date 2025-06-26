@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { setIsClaimStatusModalOpen } from "../store/slices/modalsSlice";
@@ -66,11 +67,11 @@ const ClaimStatusModal = ({ claimStatus }) => {
         aria-labelledby="claim-status-modal"
       >
         <button
-          aria-label="Close login modal"
-          className="absolute top-2.5 right-4 px-2 py-1 rounded-md border-3 border-transparent focus:border-[#38b6ff] cursor-pointer"
           onClick={() => dispatch(setIsClaimStatusModalOpen(false))}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors duration-200 focus:outline-none cursor-pointer"
+          aria-label="Close"
         >
-          <i className="fa-solid fa-x"></i>
+          <X />
         </button>
 
         <h2 className="font-bold text-3xl mb-6 text-center">Claim Status</h2>

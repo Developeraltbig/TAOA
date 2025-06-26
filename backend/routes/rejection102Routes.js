@@ -168,6 +168,7 @@ Complete Specification of the Cited Prior Art Reference: ${priorArtDescription}
             amendedClaim,
             comparisonTable,
             amendmentStrategy,
+            rejectedClaim: subjectClaims,
             updatedAt: new Date(),
           },
         },
