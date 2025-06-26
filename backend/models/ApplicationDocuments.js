@@ -12,9 +12,11 @@ const applicationDocumentsSchema = new mongoose.Schema(
     subjectPublicationDescription: {
       type: String,
     },
-    subjectPublicationClaim: {
-      type: String,
-    },
+    subjectPublicationClaim: [
+      {
+        type: String,
+      },
+    ],
     user: {
       type: Number,
       required: true,

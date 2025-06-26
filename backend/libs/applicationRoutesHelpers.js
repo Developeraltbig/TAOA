@@ -407,11 +407,9 @@ export const fetchPatentTextFromSerpAPI = async (
     }
 
     if (isFirstRejection) {
-      let text = "";
-      data.claims.forEach((claim) => (text += claim));
       return {
         fullDescription,
-        claims: text,
+        claims: data.claims,
       };
     } else {
       return fullDescription;

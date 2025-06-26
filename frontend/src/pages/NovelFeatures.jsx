@@ -40,7 +40,7 @@ const NovelFeatures = () => {
   );
   const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
   const activeDocketId = useSelector((state) => state.user.docketId);
-  const [rightViewMode, setRightViewMode] = useState("Rejected Claim");
+  const [rightViewMode, setRightViewMode] = useState("Suggested Amendment");
   const activeApplicationId = useSelector((state) => state.user.applicationId);
 
   const currentApplicationRejections = useSelector(
@@ -83,11 +83,11 @@ const NovelFeatures = () => {
       activeApplicationId &&
       activeDocketId
     ) {
-      const newData = latestApplications.find(
+      const newData = latestApplications?.find(
         (application) => application.applicationId === activeApplicationId
       );
       if (newData) {
-        const data = newData.dockets.find(
+        const data = newData.dockets?.find(
           (docket) => docket._id === activeDocketId
         );
         if (data) {
@@ -367,7 +367,9 @@ const NovelFeatures = () => {
                 {!isNovelClaimsAmended || isNovelClaimsLoading ? (
                   <div className="w-full h-full flex items-center justify-center">
                     <p className="text-gray-500">
-                      {rightViewMode} content would appear here
+                      {rightViewMode === "Suggested Amendment"
+                        ? "Suggested Claim Amendment would appear here"
+                        : "Rejected Claim would appear here"}
                     </p>
                   </div>
                 ) : rightViewMode === "Suggested Amendment" &&
@@ -433,7 +435,9 @@ const NovelFeatures = () => {
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <p className="text-gray-500">
-                      {rightViewMode} content would appear here
+                      {rightViewMode === "Suggested Amendment"
+                        ? "Suggested Claim Amendment would appear here"
+                        : "Rejected Claim would appear here"}
                     </p>
                   </div>
                 )}
@@ -447,7 +451,7 @@ const NovelFeatures = () => {
         onClose={handleCloseModal}
         onConfirm={handleConfirmation}
         title="Are you sure?"
-        message="This will regenerate the technical comparison and amendment claims suggestion."
+        message="This will regenerate the novel features and amendment claims suggestion."
         confirmButtonText="Regenerate"
         cancelButtonText="Cancel"
       />

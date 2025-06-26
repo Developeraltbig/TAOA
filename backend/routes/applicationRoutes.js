@@ -20,13 +20,19 @@ import {
   extractApplicationNumber,
   fetchPatentTextFromSerpAPI,
   backgroundProcessRejection,
+  saveToFile,
 } from "../libs/applicationRoutesHelpers.js";
 import { upload } from "../middlewares/multer.js";
+import OneFeature from "../models/OneFeatures.js";
+import NovelFeature from "../models/NovelFeatures.js";
 import { getCLMCount } from "../libs/usptoService.js";
+import DependentClaim from "../models/DependentClaims.js";
 import { verifyToken } from "../middlewares/verifyToken.js";
 import ApplicationDetails from "../models/ApplicationDetails.js";
+import CompositeAmendment from "../models/CompositeAmendments.js";
 import TechnicalComparison from "../models/TechnicalComparison.js";
 import ApplicationDocuments from "../models/ApplicationDocuments.js";
+import { getAllClaimsAsArray } from "../libs/rejectionRoutesHelper.js";
 
 const router = express.Router();
 const enviroment = process.env.NODE_ENV;
@@ -64,19 +70,45 @@ router.post("/analyse", verifyToken, async (req, res, next) => {
 
       const applicationObj = application.toObject();
 
-      applicationObj.dockets = await Promise.all(
-        dockets.map(async (docket) => {
-          const technicalData = await TechnicalComparison.findOne({
-            user: user.userId,
-            rejectionId: docket.rejectionId,
-            applicationId: application.applicationId,
-          });
-          return {
-            ...docket.toObject(),
-            technicalData: technicalData ? technicalData : {},
-          };
-        })
-      );
+      if (dockets.length > 0) {
+        applicationObj.dockets = await Promise.all(
+          dockets.map(async (docket) => {
+            const technicalData = await TechnicalComparison.findOne({
+              user: user.userId,
+              rejectionId: docket.rejectionId,
+              applicationId: application.applicationId,
+            });
+            const oneFeaturesData = await OneFeature.findOne({
+              user: user.userId,
+              rejectionId: docket.rejectionId,
+              applicationId: application.applicationId,
+            });
+            const novelData = await NovelFeature.findOne({
+              user: user.userId,
+              rejectionId: docket.rejectionId,
+              applicationId: application.applicationId,
+            });
+            const dependentData = await DependentClaim.findOne({
+              user: user.userId,
+              rejectionId: docket.rejectionId,
+              applicationId: application.applicationId,
+            });
+            const compositeData = await CompositeAmendment.findOne({
+              user: user.userId,
+              rejectionId: docket.rejectionId,
+              applicationId: application.applicationId,
+            });
+            return {
+              ...docket.toObject(),
+              novelData: novelData ? novelData : {},
+              technicalData: technicalData ? technicalData : {},
+              dependentData: dependentData ? dependentData : {},
+              compositeData: compositeData ? compositeData : {},
+              oneFeaturesData: oneFeaturesData ? oneFeaturesData : {},
+            };
+          })
+        );
+      }
 
       return applicationObj;
     };
@@ -289,19 +321,45 @@ router.post(
 
         const applicationObj = application.toObject();
 
-        applicationObj.dockets = await Promise.all(
-          dockets.map(async (docket) => {
-            const technicalData = await TechnicalComparison.findOne({
-              user: user.userId,
-              rejectionId: docket.rejectionId,
-              applicationId: application.applicationId,
-            });
-            return {
-              ...docket.toObject(),
-              technicalData: technicalData ? technicalData : {},
-            };
-          })
-        );
+        if (dockets.length > 0) {
+          applicationObj.dockets = await Promise.all(
+            dockets.map(async (docket) => {
+              const technicalData = await TechnicalComparison.findOne({
+                user: user.userId,
+                rejectionId: docket.rejectionId,
+                applicationId: application.applicationId,
+              });
+              const oneFeaturesData = await OneFeature.findOne({
+                user: user.userId,
+                rejectionId: docket.rejectionId,
+                applicationId: application.applicationId,
+              });
+              const novelData = await NovelFeature.findOne({
+                user: user.userId,
+                rejectionId: docket.rejectionId,
+                applicationId: application.applicationId,
+              });
+              const dependentData = await DependentClaim.findOne({
+                user: user.userId,
+                rejectionId: docket.rejectionId,
+                applicationId: application.applicationId,
+              });
+              const compositeData = await CompositeAmendment.findOne({
+                user: user.userId,
+                rejectionId: docket.rejectionId,
+                applicationId: application.applicationId,
+              });
+              return {
+                ...docket.toObject(),
+                novelData: novelData ? novelData : {},
+                technicalData: technicalData ? technicalData : {},
+                dependentData: dependentData ? dependentData : {},
+                compositeData: compositeData ? compositeData : {},
+                oneFeaturesData: oneFeaturesData ? oneFeaturesData : {},
+              };
+            })
+          );
+        }
 
         return applicationObj;
       };
@@ -520,19 +578,45 @@ router.post(
           }).sort({ updatedAt: 1 });
 
           const applicationObj = application.toObject();
-          applicationObj.dockets = await Promise.all(
-            dockets.map(async (docket) => {
-              const technicalData = await TechnicalComparison.findOne({
-                user: user.userId,
-                rejectionId: docket.rejectionId,
-                applicationId: application.applicationId,
-              });
-              return {
-                ...docket.toObject(),
-                technicalData: technicalData ? technicalData : {},
-              };
-            })
-          );
+          if (dockets.length > 0) {
+            applicationObj.dockets = await Promise.all(
+              dockets.map(async (docket) => {
+                const technicalData = await TechnicalComparison.findOne({
+                  user: user.userId,
+                  rejectionId: docket.rejectionId,
+                  applicationId: application.applicationId,
+                });
+                const oneFeaturesData = await OneFeature.findOne({
+                  user: user.userId,
+                  rejectionId: docket.rejectionId,
+                  applicationId: application.applicationId,
+                });
+                const novelData = await NovelFeature.findOne({
+                  user: user.userId,
+                  rejectionId: docket.rejectionId,
+                  applicationId: application.applicationId,
+                });
+                const dependentData = await DependentClaim.findOne({
+                  user: user.userId,
+                  rejectionId: docket.rejectionId,
+                  applicationId: application.applicationId,
+                });
+                const compositeData = await CompositeAmendment.findOne({
+                  user: user.userId,
+                  rejectionId: docket.rejectionId,
+                  applicationId: application.applicationId,
+                });
+                return {
+                  ...docket.toObject(),
+                  novelData: novelData ? novelData : {},
+                  technicalData: technicalData ? technicalData : {},
+                  dependentData: dependentData ? dependentData : {},
+                  compositeData: compositeData ? compositeData : {},
+                  oneFeaturesData: oneFeaturesData ? oneFeaturesData : {},
+                };
+              })
+            );
+          }
           return applicationObj;
         })
       );
@@ -581,12 +665,12 @@ router.post(
         });
       }
 
-      let updatedApplication = await ApplicationDetails.findOne({
+      const checkApplicationExists = await ApplicationDetails.findOne({
         applicationId,
         user: user.userId,
       });
 
-      if (!updatedApplication) {
+      if (!checkApplicationExists) {
         return res.status(400).json({
           status: "error",
           message: "Application doesn't exist.",
@@ -643,7 +727,9 @@ router.post(
         (claim) => claim.independentClaim
       );
 
-      if (!text) {
+      const claimsArray = getAllClaimsAsArray(text);
+
+      if (!claimsArray.length) {
         return res.status(400).json({
           status: "error",
           message: "Claims extraction failed! Please try again.",
@@ -658,7 +744,7 @@ router.post(
         {
           $set: {
             updatedAt: new Date(),
-            subjectPublicationClaim: text,
+            subjectPublicationClaim: claimsArray,
             structuredClaims,
           },
         },
@@ -669,7 +755,22 @@ router.post(
         }
       );
 
-      updatedApplication = await ApplicationDetails.findOneAndUpdate(
+      if (checkApplicationExists.isSubjectClaimsExists) {
+        const deleteCriteria = {
+          applicationId,
+          user: user.userId,
+        };
+        await Promise.all([
+          Dockets.deleteMany(deleteCriteria),
+          OneFeature.deleteMany(deleteCriteria),
+          NovelFeature.deleteMany(deleteCriteria),
+          DependentClaim.deleteMany(deleteCriteria),
+          CompositeAmendment.deleteMany(deleteCriteria),
+          TechnicalComparison.deleteMany(deleteCriteria),
+        ]);
+      }
+
+      const updatedApplication = await ApplicationDetails.findOneAndUpdate(
         {
           applicationId,
           user: user.userId,
@@ -696,10 +797,50 @@ router.post(
         const dockets = await Dockets.find({
           applicationId,
           user: user.userId,
-        }).sort({ updatedAt: -1 });
+        }).sort({ updatedAt: 1 });
 
         const applicationObj = updatedApplication.toObject();
-        applicationObj.dockets = dockets.map((docket) => docket.toObject());
+
+        if (dockets.length > 0) {
+          applicationObj.dockets = await Promise.all(
+            dockets.map(async (docket) => {
+              const technicalData = await TechnicalComparison.findOne({
+                user: user.userId,
+                rejectionId: docket.rejectionId,
+                applicationId,
+              });
+              const oneFeaturesData = await OneFeature.findOne({
+                user: user.userId,
+                rejectionId: docket.rejectionId,
+                applicationId,
+              });
+              const novelData = await NovelFeature.findOne({
+                user: user.userId,
+                rejectionId: docket.rejectionId,
+                applicationId,
+              });
+              const dependentData = await DependentClaim.findOne({
+                user: user.userId,
+                rejectionId: docket.rejectionId,
+                applicationId,
+              });
+              const compositeData = await CompositeAmendment.findOne({
+                user: user.userId,
+                rejectionId: docket.rejectionId,
+                applicationId,
+              });
+              return {
+                ...docket.toObject(),
+                novelData: novelData ? novelData : {},
+                technicalData: technicalData ? technicalData : {},
+                dependentData: dependentData ? dependentData : {},
+                compositeData: compositeData ? compositeData : {},
+                oneFeaturesData: oneFeaturesData ? oneFeaturesData : {},
+              };
+            })
+          );
+        }
+
         return applicationObj;
       };
 
@@ -889,10 +1030,50 @@ router.post("/fetchSubjectDescription", verifyToken, async (req, res, next) => {
       const dockets = await Dockets.find({
         applicationId,
         user: user.userId,
-      }).sort({ updatedAt: -1 });
+      }).sort({ updatedAt: 1 });
 
       const applicationObj = updatedApplication.toObject();
-      applicationObj.dockets = dockets.map((docket) => docket.toObject());
+
+      if (dockets.length > 0) {
+        applicationObj.dockets = await Promise.all(
+          dockets.map(async (docket) => {
+            const technicalData = await TechnicalComparison.findOne({
+              user: user.userId,
+              rejectionId: docket.rejectionId,
+              applicationId,
+            });
+            const oneFeaturesData = await OneFeature.findOne({
+              user: user.userId,
+              rejectionId: docket.rejectionId,
+              applicationId,
+            });
+            const novelData = await NovelFeature.findOne({
+              user: user.userId,
+              rejectionId: docket.rejectionId,
+              applicationId,
+            });
+            const dependentData = await DependentClaim.findOne({
+              user: user.userId,
+              rejectionId: docket.rejectionId,
+              applicationId,
+            });
+            const compositeData = await CompositeAmendment.findOne({
+              user: user.userId,
+              rejectionId: docket.rejectionId,
+              applicationId,
+            });
+            return {
+              ...docket.toObject(),
+              novelData: novelData ? novelData : {},
+              technicalData: technicalData ? technicalData : {},
+              dependentData: dependentData ? dependentData : {},
+              compositeData: compositeData ? compositeData : {},
+              oneFeaturesData: oneFeaturesData ? oneFeaturesData : {},
+            };
+          })
+        );
+      }
+
       return applicationObj;
     };
 
@@ -1012,10 +1193,50 @@ router.post(
         const dockets = await Dockets.find({
           applicationId,
           user: user.userId,
-        }).sort({ updatedAt: -1 });
+        }).sort({ updatedAt: 1 });
 
         const applicationObj = updatedApplication.toObject();
-        applicationObj.dockets = dockets.map((docket) => docket.toObject());
+
+        if (dockets.length > 0) {
+          applicationObj.dockets = await Promise.all(
+            dockets.map(async (docket) => {
+              const technicalData = await TechnicalComparison.findOne({
+                user: user.userId,
+                rejectionId: docket.rejectionId,
+                applicationId,
+              });
+              const oneFeaturesData = await OneFeature.findOne({
+                user: user.userId,
+                rejectionId: docket.rejectionId,
+                applicationId,
+              });
+              const novelData = await NovelFeature.findOne({
+                user: user.userId,
+                rejectionId: docket.rejectionId,
+                applicationId,
+              });
+              const dependentData = await DependentClaim.findOne({
+                user: user.userId,
+                rejectionId: docket.rejectionId,
+                applicationId,
+              });
+              const compositeData = await CompositeAmendment.findOne({
+                user: user.userId,
+                rejectionId: docket.rejectionId,
+                applicationId,
+              });
+              return {
+                ...docket.toObject(),
+                novelData: novelData ? novelData : {},
+                technicalData: technicalData ? technicalData : {},
+                dependentData: dependentData ? dependentData : {},
+                compositeData: compositeData ? compositeData : {},
+                oneFeaturesData: oneFeaturesData ? oneFeaturesData : {},
+              };
+            })
+          );
+        }
+
         return applicationObj;
       };
 

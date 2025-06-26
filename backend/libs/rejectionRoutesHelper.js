@@ -64,35 +64,111 @@ export const generateResponse = async (prompt, applicationNumber) => {
   }
 };
 
-export const getClaimTextByNumber = (fullText, claimNumber) => {
-  const regex = /(\d+)\.\s*([\s\S]*?)(?=\d+\.|\Z)/g;
+export const getAllClaimsAsArray = (fullText) => {
+  fullText = fullText.replace(/\r\n|\r/g, "\n");
+  const regex = /^(\d+(?:-\d+)?)\.\s*((?:(?!^\d+(?:-\d+)?\.)[\s\S])*)/gm;
 
-  const claimsMap = new Map();
-
+  const allClaims = [];
   let match;
+
+  const headerFooterPatterns = [
+    /^DOCKET NO\.:\s*\S+\s*$/im,
+    /^Application No\.:\s*\S+\s*$/im,
+    /^Office Action Dated:\s*.+$/im,
+    /^PATENT\s*$/im,
+    /^\s*Page\s+\d+\s+of\s+\d+\s*$/im,
+    /^\s*4927-1215-8768\.1\s*$/im,
+    /^---\s*PAGE\s+\d+\s*---\s*$/im,
+    /^This listing of claims will replace all prior versions and listings, of claims in the application:\s*$/im,
+    /^Listing of Claims:\s*$/im,
+    /^\s*\d+\s*$/im,
+  ];
+
   while ((match = regex.exec(fullText)) !== null) {
-    const currentClaimNumber = parseInt(match[1], 10);
-    let claimBody = match[2]; // Claim body is now consistently in group 2
+    const currentClaimNumber = match[1];
+    let claimBody = match[2];
 
     if (claimBody !== undefined) {
       claimBody = claimBody.trim();
 
-      claimBody = claimBody
-        .replace(
-          /^\((?:cancelled|previously presented|currently amended|new|reinstated|withdrawn)\)\s*/i,
-          ""
-        )
-        .trim();
+      const lines = claimBody.split("\n");
+      const cleanedLines = [];
+
+      for (const line of lines) {
+        let shouldKeepLine = true;
+        for (const pattern of headerFooterPatterns) {
+          if (pattern.test(line.trim())) {
+            shouldKeepLine = false;
+            break;
+          }
+        }
+        if (shouldKeepLine) {
+          cleanedLines.push(line);
+        }
+      }
+      claimBody = cleanedLines.join("\n").trim();
 
       if (claimBody.length > 0) {
-        claimsMap.set(currentClaimNumber, claimBody);
+        allClaims.push(`${currentClaimNumber}. ${claimBody}`);
+      }
+    }
+  }
+  return allClaims;
+};
+
+export const getClaimWithFallback = (claimsArray, targetClaimNumber) => {
+  const targetNum = parseInt(targetClaimNumber, 10);
+  if (isNaN(targetNum) || targetNum <= 0) {
+    return null;
+  }
+
+  const claimStringParseRegex = /^(\d+(?:-\d+)?)\.\s*([\s\S]*)/;
+
+  const parseAndValidateClaim = (claimStr) => {
+    const match = claimStr.match(claimStringParseRegex);
+    if (!match) {
+      return null;
+    }
+    const claimNumberGroup = match[1];
+    const claimText = match[2].trim();
+
+    let matchesTarget = false;
+
+    if (claimNumberGroup === String(targetNum)) {
+      matchesTarget = true;
+    } else {
+      const rangeMatch = claimNumberGroup.match(/^(\d+)-(\d+)$/);
+      if (rangeMatch) {
+        const startNum = parseInt(rangeMatch[1], 10);
+        const endNum = parseInt(rangeMatch[2], 10);
+        if (targetNum >= startNum && targetNum <= endNum) {
+          matchesTarget = true;
+        }
+      }
+    }
+    return {
+      number: claimNumberGroup,
+      text: claimText,
+      matchesTarget: matchesTarget,
+    };
+  };
+
+  if (claimsArray.length >= targetNum) {
+    const directLookupClaimString = claimsArray[targetNum - 1];
+    if (directLookupClaimString) {
+      const parsedClaim = parseAndValidateClaim(directLookupClaimString);
+      if (parsedClaim && parsedClaim.matchesTarget) {
+        return parsedClaim.text;
       }
     }
   }
 
-  if (claimsMap.has(claimNumber)) {
-    return claimsMap.get(claimNumber);
-  } else {
-    return `Claim number ${claimNumber} not found.`;
+  for (const claimString of claimsArray) {
+    const parsedClaim = parseAndValidateClaim(claimString);
+    if (parsedClaim && parsedClaim.matchesTarget) {
+      return parsedClaim.text;
+    }
   }
+
+  return null;
 };

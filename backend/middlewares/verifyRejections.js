@@ -1,7 +1,7 @@
 import Dockets from "../models/Dockets.js";
 import ApplicationDetails from "../models/ApplicationDetails.js";
 import ApplicationDocuments from "../models/ApplicationDocuments.js";
-import { getClaimTextByNumber } from "../libs/rejectionRoutesHelper.js";
+import { getClaimWithFallback } from "../libs/rejectionRoutesHelper.js";
 
 export const verify102rejection = async (req, res, next) => {
   try {
@@ -73,10 +73,18 @@ export const verify102rejection = async (req, res, next) => {
     const priorArtDescription = applicationDocuments.priorArtDescription.filter(
       (prior) => prior.citedPubNo === priorArtNumber
     )[0].citedDescription;
-    const subjectClaims = getClaimTextByNumber(
+    let subjectClaims = getClaimWithFallback(
       applicationDocuments.subjectPublicationClaim,
       data.rejectedClaims[0]
     );
+
+    if (!subjectClaims) {
+      return res.status(400).json({
+        status: "error",
+        message: "Rejected claim couldn't be found!",
+      });
+    }
+
     const examinerReasoning = applicationExist.rejections.filter(
       (reject) => reject._id.toString() === data.rejectionId
     )[0].examinerReasoning;
@@ -166,10 +174,10 @@ export const verify103rejection = async (req, res, next) => {
     const priorArtDescription = applicationDocuments.priorArtDescription.filter(
       (prior) => prior.citedPubNo === priorArtNumber
     )[0].citedDescription;
-    const subjectClaims = getClaimTextByNumber(
-      applicationDocuments.subjectPublicationClaim,
-      data.rejectedClaims[0]
-    );
+    // const subjectClaims = getClaimTextByNumber(
+    //   applicationDocuments.subjectPublicationClaim,
+    //   data.rejectedClaims[0]
+    // );
     const examinerReasoning = applicationExist.rejections.filter(
       (reject) => reject._id.toString() === data.rejectionId
     )[0].examinerReasoning;

@@ -28,6 +28,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Navigate, useNavigate } from "react-router-dom";
 import ReasoningSection from "../components/ReasoningSection";
 import ClaimStatusModal from "../components/ClaimStatusModal";
+import ConfirmationModal from "../components/ConfirmationModal";
 import { setIsClaimStatusModalOpen } from "../store/slices/modalsSlice";
 import { clearShowState } from "../store/slices/applicationDocketsSlice";
 import { setLatestApplication } from "../store/slices/latestApplicationsSlice";
@@ -69,6 +70,7 @@ const Application = () => {
   const fileInputRef = useRef(null);
   const [data, setData] = useState({});
   const enviroment = import.meta.env.VITE_ENV;
+  const [newfile, setNewFile] = useState(null);
   const isRejectionLoading = useSelector(
     (state) => state.loading.isDocketsAnalysing
   );
@@ -80,7 +82,7 @@ const Application = () => {
   const isLatestApplicationLoading = useSelector(
     (state) => state.loading.isLatestApplicationLoading
   );
-
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const activeApplicationId = useSelector((state) => state.user.applicationId);
   const currentApplicationDocuments = useSelector(
     (state) => state.user.applicationDocuments[activeApplicationId]
@@ -107,6 +109,28 @@ const Application = () => {
 
   const toggleCollapse = () => setIsCollapsed((prev) => !prev);
 
+  const handleOpenModal = () => setIsModalOpen(true);
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setNewFile(null);
+    fileInputRef.current.value = "";
+  };
+
+  const handleConfirmation = async () => {
+    const formData = new FormData();
+    formData.append("file", newfile);
+    formData.append("token", authUser.token);
+    formData.append("applicationId", activeApplicationId);
+    handleCloseModal();
+    await fetchUploadAllDocuments({
+      formData,
+      uploadClaims: true,
+      fetchSubjectDesc: !data.isSubjectDescriptionExists,
+      fetchPriorArt: !data.isPriorArtDescriptionExists,
+    });
+    fileInputRef.current.value = "";
+  };
+
   const handleDragOver = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -115,8 +139,11 @@ const Application = () => {
 
   const handleFileChange = (e) => {
     const files = e.target.files;
-    if (files?.length > 0) {
+    if (files?.length > 0 && !data.isSubjectClaimsExists) {
       handleFile(files[0]);
+    } else if (files?.length > 0 && data.isSubjectClaimsExists) {
+      handleOpenModal();
+      setNewFile(files[0]);
     }
   };
 
@@ -483,7 +510,7 @@ const Application = () => {
       latestApplications.length > 0 &&
       activeApplicationId
     ) {
-      const newData = latestApplications.find(
+      const newData = latestApplications?.find(
         (application) => application.applicationId === activeApplicationId
       );
       if (newData) {
@@ -1230,7 +1257,10 @@ const Application = () => {
                                 handleViewAnalysisClick(e, docket);
                               }}
                               disabled={
-                                Object.keys(isRejectionLoading).length > 0
+                                Object.keys(isRejectionLoading).length > 0 ||
+                                isClaimsUploading ||
+                                isPriorDescriptionFetching ||
+                                isSubjectDescriptionFetching
                               }
                             >
                               <span>View Analysis</span>
@@ -1255,7 +1285,10 @@ const Application = () => {
                                 Object.keys(isRejectionLoading).length > 0 ||
                                 !data.isSubjectDescriptionExists ||
                                 !data.isSubjectClaimsExists ||
-                                !data.isPriorArtDescriptionExists
+                                !data.isPriorArtDescriptionExists ||
+                                isClaimsUploading ||
+                                isPriorDescriptionFetching ||
+                                isSubjectDescriptionFetching
                               }
                             >
                               {isRejectionLoading[rejection._id]?.loading ? (
@@ -1281,6 +1314,15 @@ const Application = () => {
         )}
       </div>
       <ClaimStatusModal claimStatus={data?.claimStatus} />
+      <ConfirmationModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onConfirm={handleConfirmation}
+        title="Are you sure?"
+        message="Uploading a new claim file will regenerate the office action analysis including the suggested claim amendment."
+        confirmButtonText="Ok"
+        cancelButtonText="Cancel"
+      />
     </>
   );
 };

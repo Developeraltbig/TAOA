@@ -1,50 +1,31 @@
 export const formatTextByDelimiter = (text) => {
+  text = text.replace(/\r\n|\r/g, "\n");
+
+  const lines = text.split("\n");
+
   let introText = "";
-  let listContentRaw = "";
-  let firstDelimiterIndex = -1;
+  const listSegments = [];
 
-  const match = text.match(/[:;]/);
-  if (match) {
-    firstDelimiterIndex = text.indexOf(match[0]);
-  }
+  if (lines.length > 0) {
+    introText = lines[0].trim();
 
-  if (firstDelimiterIndex === -1) {
-    return text.trim();
-  } else {
-    introText = text.substring(0, firstDelimiterIndex + 1).trim();
-    listContentRaw = text.substring(firstDelimiterIndex + 1).trim();
-  }
-
-  const segmentsWithDelimiters = listContentRaw.split(/([:;])/g);
-
-  let finalSegments = [];
-  let currentSegmentBuffer = "";
-
-  for (let i = 0; i < segmentsWithDelimiters.length; i++) {
-    const part = segmentsWithDelimiters[i];
-
-    if (part === ":" || part === ";") {
-      currentSegmentBuffer += part;
-      if (currentSegmentBuffer.trim() !== "") {
-        finalSegments.push(currentSegmentBuffer.trim());
+    for (let i = 1; i < lines.length; i++) {
+      const segment = lines[i].trim();
+      if (segment !== "") {
+        listSegments.push(segment);
       }
-      currentSegmentBuffer = "";
-    } else if (part.trim() !== "") {
-      currentSegmentBuffer += part;
     }
+  } else {
+    return "";
   }
 
-  if (currentSegmentBuffer.trim() !== "") {
-    finalSegments.push(currentSegmentBuffer.trim());
-  }
-
-  if (finalSegments.length === 0) {
+  if (listSegments.length === 0) {
     return introText;
   }
 
-  const listItemsHtml = finalSegments
+  const listItemsHtml = listSegments
     .map((segment) => {
-      return `<li class="mt-2 -ml-2">${segment}</li>`;
+      return `<li class="mt-2">${segment}</li>`;
     })
     .join("");
 

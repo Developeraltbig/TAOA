@@ -25,9 +25,6 @@ import { updateDocketData } from "../store/slices/latestApplicationsSlice";
 const OneFeatures = () => {
   const dispatch = useDispatch();
   const enviroment = import.meta.env.VITE_ENV;
-  const isSidebarMenuVisible = useSelector(
-    (state) => state.modals.isSidebarMenuVisible
-  );
   const [docketData, setDocketData] = useState({});
   const latestApplications = useSelector(
     (state) => state.applications.latestApplication
@@ -43,7 +40,7 @@ const OneFeatures = () => {
   );
   const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
   const activeDocketId = useSelector((state) => state.user.docketId);
-  const [rightViewMode, setRightViewMode] = useState("Rejected Claim");
+  const [rightViewMode, setRightViewMode] = useState("Suggested Amendment");
   const activeApplicationId = useSelector((state) => state.user.applicationId);
 
   const currentApplicationRejections = useSelector(
@@ -86,11 +83,11 @@ const OneFeatures = () => {
       activeApplicationId &&
       activeDocketId
     ) {
-      const newData = latestApplications.find(
+      const newData = latestApplications?.find(
         (application) => application.applicationId === activeApplicationId
       );
       if (newData) {
-        const data = newData.dockets.find(
+        const data = newData.dockets?.find(
           (docket) => docket._id === activeDocketId
         );
         if (data) {
@@ -146,7 +143,7 @@ const OneFeatures = () => {
         })
       );
       // if (docketData.rejectionType === "102") {
-      //   response = await post("/tabs/102/technicalcomparison", {
+      //   response = await post("/tabs/102/onefeatures", {
       //     token: authUser.token,
       //     data: docketData,
       //   });
@@ -373,7 +370,9 @@ const OneFeatures = () => {
                 {!isOneFeaturesClaimsAmended || isOneFeaturesClaimsLoading ? (
                   <div className="w-full h-full flex items-center justify-center">
                     <p className="text-gray-500">
-                      {rightViewMode} content would appear here
+                      {rightViewMode === "Suggested Amendment"
+                        ? "Suggested Claim Amendment would appear here"
+                        : "Rejected Claim would appear here"}
                     </p>
                   </div>
                 ) : rightViewMode === "Suggested Amendment" &&
@@ -439,7 +438,9 @@ const OneFeatures = () => {
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <p className="text-gray-500">
-                      {rightViewMode} content would appear here
+                      {rightViewMode === "Suggested Amendment"
+                        ? "Suggested Claim Amendment would appear here"
+                        : "Rejected Claim would appear here"}
                     </p>
                   </div>
                 )}
@@ -453,7 +454,7 @@ const OneFeatures = () => {
         onClose={handleCloseModal}
         onConfirm={handleConfirmation}
         title="Are you sure?"
-        message="This will regenerate the technical comparison and amendment claims suggestion."
+        message="This will regenerate the one features and amendment claims suggestion."
         confirmButtonText="Regenerate"
         cancelButtonText="Cancel"
       />
