@@ -16,14 +16,24 @@ const defaultApplicationDocumentState = {
 const defaultapplicationRejectionState = {
   isTechnicalComparisonLoading: false,
   isTechnicalComparisonClaimsAmended: false,
+  isTechnicalComparisonFinalized: false,
+  isTechnicalComparisonAmendmentClaimsLoading: false,
   isNovelFeaturesLoading: false,
   isNovelFeaturesClaimsAmended: false,
+  isNovelFeaturesFinalized: false,
+  isNovelFeaturesAmendmentClaimsLoading: false,
   isDependentClaimsLoading: false,
   isDependentClaimsAmended: false,
+  isDependentClaimsFinalized: false,
+  isDependentClaimsAmendmentClaimsLoading: false,
   isCompositeAmendmentLoading: false,
   isCompositeAmendmentClaimsAmended: false,
+  isCompositeAmendmentFinalized: false,
+  isCompositeAmendmentClaimsLoading: false,
   isOneFeaturesLoading: false,
   isOneFeaturesClaimsAmended: false,
+  isOneFeaturesFinalized: false,
+  isOneFeaturesAmendmentClaimsLoading: false,
 };
 
 const authUserSlice = createSlice({
@@ -113,5 +123,6 @@ export const {
   setSubjectDescription,
   setApplicationDocuments,
   setApplicationRejections,
+  setOtherRejectionResponse,
 } = authUserSlice.actions;
 export default authUserSlice.reducer;

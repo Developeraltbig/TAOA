@@ -5,9 +5,12 @@ const DocketsContentPanel = ({
   title,
   children,
   onDownload,
+  onFinalize,
   onRegenerate,
   onFullScreen,
   headerContent,
+  isClaimsLoading,
+  isClaimsFinalized,
 }) => {
   return (
     <div className="border-2 border-gray-400 rounded-lg bg-white h-full flex flex-col relative p-4">
@@ -41,8 +44,11 @@ const DocketsContentPanel = ({
       <div className="absolute bottom-0 left-5 sm:left-15 translate-y-1/2">
         <DocketsActionButtons
           onDownload={onDownload}
+          onFinalize={onFinalize}
           onRegenerate={onRegenerate}
           onFullScreen={onFullScreen}
+          isClaimsLoading={isClaimsLoading}
+          isClaimsFinalized={isClaimsFinalized}
         />
       </div>
     </div>

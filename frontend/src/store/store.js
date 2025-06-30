@@ -1,3 +1,4 @@
+import draftReducer from "./slices/draftSlice";
 import storage from "redux-persist/lib/storage";
 import modalsReducer from "./slices/modalsSlice";
 import loadingReducer from "./slices/loadingSlice";
@@ -14,6 +15,7 @@ const persistConfig = {
 };
 
 const rootReducer = combineReducers({
+  draft: draftReducer,
   modals: modalsReducer,
   user: authUserReducer,
   loading: loadingReducer,

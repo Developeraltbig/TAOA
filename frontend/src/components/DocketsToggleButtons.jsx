@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const DocketsToggleButtons = ({
   options,
@@ -11,6 +11,10 @@ const DocketsToggleButtons = ({
     setSelected(option);
     onSelectionChange?.(option);
   };
+
+  useEffect(() => {
+    setSelected(defaultSelected || options[0]);
+  }, [defaultSelected]);
 
   return (
     <>

@@ -11,6 +11,7 @@ import {
   clearShowState,
   clearDocketState,
 } from "../store/slices/applicationDocketsSlice";
+import { setFlag } from "../store/slices/draftSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { ChevronsRight, ChevronsDown } from "lucide-react";
 import FullScreenTable from "../components/FullScreenTable";
@@ -21,6 +22,7 @@ import DocketsContentPanel from "../components/DocketsContentPanel";
 import DocketsHeaderSection from "../components/DocketsHeaderSection";
 import DocketsToggleButtons from "../components/DocketsToggleButtons";
 import { updateDocketData } from "../store/slices/latestApplicationsSlice";
+import FinalizeConfirmationModal from "../components/FinalizeConfirmationModal";
 
 const DependentClaims = () => {
   const dispatch = useDispatch();
@@ -32,7 +34,6 @@ const DependentClaims = () => {
   const isLatestApplicationLoading = useSelector(
     (state) => state.loading.isLatestApplicationLoading
   );
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [leftViewMode, setLeftViewMode] = useState("Table");
   const authUser = useSelector((state) => state.user.authUser);
   const [isExtraLargeScreen, setIsExtraLargeScreen] = useState(
@@ -40,7 +41,9 @@ const DependentClaims = () => {
   );
   const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
   const activeDocketId = useSelector((state) => state.user.docketId);
+  const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false);
   const [rightViewMode, setRightViewMode] = useState("Suggested Amendment");
+  const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
   const activeApplicationId = useSelector((state) => state.user.applicationId);
 
   const currentApplicationRejections = useSelector(
@@ -50,6 +53,10 @@ const DependentClaims = () => {
     currentApplicationRejections?.isDependentClaimsLoading;
   const isDependentClaimsAmendedState =
     currentApplicationRejections?.isDependentClaimsAmended;
+  const isDependentClaimsFinalizedState =
+    currentApplicationRejections?.isDependentClaimsFinalized;
+  const isDependentAmendmentClaimsLoading =
+    currentApplicationRejections?.isDependentClaimsAmendmentClaimsLoading;
 
   const patentData = [
     {
@@ -62,19 +69,112 @@ const DependentClaims = () => {
     })) || []),
   ];
 
-  const handleOpenModal = () => setIsModalOpen(true);
-  const handleCloseModal = () => setIsModalOpen(false);
-  const handleConfirmation = () => {
+  const handleRegenerateOpenModal = () => setIsRegenerateModalOpen(true);
+  const handleRegenerateCloseModal = () => setIsRegenerateModalOpen(false);
+  const handleRegenerateConfirmation = () => {
+    dispatch(
+      setApplicationRejections({
+        rejectionId: activeDocketId,
+        name: "isDependentClaimsFinalized",
+        value: false,
+      })
+    );
     analyseDependentComparison(activeApplicationId, activeDocketId);
-    handleCloseModal();
+    handleRegenerateCloseModal();
+  };
+  const handleRegenerate = () => {
+    if (isDependentAmendmentClaimsLoading) {
+      return;
+    }
+    handleRegenerateOpenModal();
+  };
+
+  const handleFinalizeOpenModal = () => setIsFinalizeModalOpen(true);
+  const handleFinalizeCloseModal = () => setIsFinalizeModalOpen(false);
+  const handleFinalizeConfirmation = async () => {
+    handleFinalizeCloseModal();
+    if (
+      !docketData?.dependentData?.amendedClaim ||
+      !isDependentClaimsAmendedState
+    ) {
+      return toast.error("Please amend the claims first");
+    } else if (isDependentClaimsFinalizedState) {
+      return;
+    }
+
+    try {
+      await post("/rejection/finalize", {
+        token: authUser.token,
+        rejectionId: docketData.rejectionId,
+        applicationId: activeApplicationId,
+        type: "dependentClaims",
+        amendedClaim: docketData.technicalData.amendedClaim,
+        comparisonTable: docketData.technicalData.comparisonTable,
+        amendmentStrategy: docketData.technicalData.amendmentStrategy,
+      });
+
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isTechnicalComparisonFinalized",
+          value: false,
+        })
+      );
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isNovelFeaturesFinalized",
+          value: false,
+        })
+      );
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isDependentClaimsFinalized",
+          value: true,
+        })
+      );
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isCompositeAmendmentFinalized",
+          value: false,
+        })
+      );
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isOneFeaturesFinalized",
+          value: false,
+        })
+      );
+      dispatch(setFlag());
+      dispatch(
+        updateDocketData({
+          applicationId: activeApplicationId,
+          docketId: activeDocketId,
+          name: "finalizedType",
+          value: "dependentClaims",
+        })
+      );
+      toast.success("Amendment finalized successfully");
+    } catch (error) {
+      if (enviroment === "development") {
+        console.log(error);
+      }
+      toast.error("Failed to finalize amendment");
+    }
+  };
+  const handleFinalizeClick = async (e) => {
+    e.preventDefault();
+    if (isDependentClaimsFinalizedState) {
+      return;
+    }
+    handleFinalizeOpenModal();
   };
 
   const openFullScreen = () => setIsFullScreenOpen(true);
   const closeFullScreen = () => setIsFullScreenOpen(false);
-
-  const handleRegenerate = () => {
-    handleOpenModal();
-  };
 
   const fetchDocketData = () => {
     if (
@@ -105,14 +205,30 @@ const DependentClaims = () => {
     }
   };
 
-  const handleAmendClaimsClick = (e) => {
+  const handleAmendClaimsClick = async (e) => {
     e.preventDefault();
     if (
       isDependentClaimsLoadingState ||
-      !docketData?.dependentData?.amendedClaim
+      !docketData?.dependentData?.amendedClaim ||
+      isDependentAmendmentClaimsLoading
     ) {
       return;
     }
+    dispatch(
+      setApplicationRejections({
+        rejectionId: activeDocketId,
+        name: "isDependentClaimsAmendmentClaimsLoading",
+        value: true,
+      })
+    );
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    dispatch(
+      setApplicationRejections({
+        rejectionId: activeDocketId,
+        name: "isDependentClaimsAmendmentClaimsLoading",
+        value: false,
+      })
+    );
     dispatch(
       setApplicationRejections({
         rejectionId: activeDocketId,
@@ -142,18 +258,31 @@ const DependentClaims = () => {
           value: false,
         })
       );
-      // if (docketData.rejectionType === "102") {
-      //   response = await post("/tabs/102/dependentclaims", {
-      //     token: authUser.token,
-      //     data: docketData,
-      //   });
-      // }
+      if (docketData.rejectionType === "102") {
+        response = await post("/tabs/102/dependentclaims", {
+          token: authUser.token,
+          data: docketData,
+        });
+      } else if (docketData.rejectionType === "103") {
+        response = await post("/tabs/103/dependentclaims", {
+          token: authUser.token,
+          data: docketData,
+        });
+      }
       dispatch(
         updateDocketData({
           applicationId: applicationId,
           docketId: docketId,
           name: "dependentData",
           value: response.data.data,
+        })
+      );
+      dispatch(
+        updateDocketData({
+          applicationId: applicationId,
+          docketId: docketId,
+          name: "showFinalizedType",
+          value: false,
         })
       );
     } catch (error) {
@@ -198,7 +327,8 @@ const DependentClaims = () => {
       (docketData &&
         Object.keys(docketData).length &&
         docketData?.dependentData &&
-        !Object.keys(docketData?.dependentData).length) ||
+        !Object.keys(docketData?.dependentData).length &&
+        !isDependentClaimsLoadingState) ||
       (docketData &&
         Object.keys(docketData).length &&
         docketData.dependentData === undefined &&
@@ -207,6 +337,27 @@ const DependentClaims = () => {
       analyseDependentComparison(activeApplicationId, activeDocketId);
     }
   }, [docketData]);
+
+  useEffect(() => {
+    if (docketData.finalizedType && docketData.showFinalizedType) {
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name:
+            docketData.finalizedType === "technicalComparison"
+              ? "isTechnicalComparisonFinalized"
+              : docketData.finalizedType === "novelFeatures"
+              ? "isNovelFeaturesFinalized"
+              : docketData.finalizedType === "dependentClaims"
+              ? "isDependentClaimsFinalized"
+              : docketData.finalizedType === "compositeAmendment"
+              ? "isCompositeAmendmentFinalized"
+              : "isOneFeaturesFinalized",
+          value: true,
+        })
+      );
+    }
+  }, [docketData.finalizedType, docketData.showFinalizedType]);
 
   useEffect(() => {
     if (activeDocketId && activeApplicationId) {
@@ -243,6 +394,7 @@ const DependentClaims = () => {
               }
               onDownload={() => handleDownload("left")}
               onRegenerate={() => handleRegenerate()}
+              isClaimsLoading={isDependentAmendmentClaimsLoading}
               onFullScreen={
                 leftViewMode === "Table" &&
                 !isDependentClaimsLoadingState &&
@@ -264,14 +416,11 @@ const DependentClaims = () => {
                   <table className="w-full border-collapse border border-gray-300 border-t-0 text-center">
                     <thead>
                       <tr className="border-b border-gray-300 bg-[#0284c7] sticky -top-3 z-10">
-                        <th className="py-2 px-4 w-1/3 text-md font-bold text-white max-[425px]:px-2 border-r border-gray-300">
+                        <th className="py-3 px-6 w-1/2 text-md font-bold text-white border-r border-gray-300">
                           Subject Application
                         </th>
-                        <th className="py-2 px-4 w-1/3 text-md font-bold text-white max-[425px]:px-2 border-r border-gray-300">
+                        <th className="py-3 px-6 w-1/2 text-md font-bold text-white">
                           Prior Art
-                        </th>
-                        <th className="py-2 px-4 w-1/3 text-md font-bold text-white max-[425px]:px-2">
-                          Differentiating Feature
                         </th>
                       </tr>
                     </thead>
@@ -284,14 +433,11 @@ const DependentClaims = () => {
                               index % 2 === 0 ? "bg-gray-200" : "bg-white"
                             } hover:bg-gray-200/50`}
                           >
-                            <td className="py-2 px-4 text-sm font-semibold text-gray-800 max-[425px]:px-2 border-r border-gray-300 text-left align-top">
+                            <td className="py-3 px-6 text-sm font-medium text-gray-800 border-r border-gray-300 text-left align-top">
                               {comparison.subjectApplication}
                             </td>
-                            <td className="py-2 px-4 text-sm font-semibold text-gray-800 max-[425px]:px-2 border-r border-gray-300 text-left align-top">
+                            <td className="py-3 px-6 text-sm font-medium text-gray-800 text-left align-top">
                               <span>{comparison.priorArt}</span>
-                            </td>
-                            <td className="py-2 px-4 text-sm font-semibold text-gray-800 max-[425px]:px-2 text-left align-top">
-                              {comparison.differentiatingFeature}
                             </td>
                           </tr>
                         )
@@ -326,14 +472,19 @@ const DependentClaims = () => {
             <div className="inline-block relative">
               <button
                 className={`h-10 w-10 rounded-full bg-[#3586cb] flex items-center justify-center shadow-sm cursor-pointer text-white tooltip-trigger ${
-                  isDependentClaimsLoadingState
+                  isDependentClaimsLoadingState ||
+                  isDependentAmendmentClaimsLoading
                     ? ""
                     : isDependentClaimsAmendedState
                     ? ""
                     : "animate-pulse"
                 }`}
                 onClick={handleAmendClaimsClick}
-                disabled={isDependentClaimsLoadingState}
+                disabled={
+                  isDependentClaimsLoadingState ||
+                  isDependentClaimsAmendedState ||
+                  isDependentAmendmentClaimsLoading
+                }
               >
                 {isExtraLargeScreen ? <ChevronsRight /> : <ChevronsDown />}
               </button>
@@ -348,7 +499,9 @@ const DependentClaims = () => {
                 before:border-4 before:border-transparent before:border-b-gray-800
               "
               >
-                Click to amend claims
+                {isDependentClaimsAmendedState
+                  ? "Claims amended"
+                  : "Click to amend claims"}
               </div>
             </div>
           </div>
@@ -364,11 +517,20 @@ const DependentClaims = () => {
                 />
               }
               onDownload={() => handleDownload("right")}
-              onRegenerate={() => handleRegenerate()}
+              onFinalize={
+                isDependentClaimsAmendedState &&
+                !isDependentClaimsLoadingState &&
+                rightViewMode === "Suggested Amendment"
+                  ? handleFinalizeClick
+                  : null
+              }
+              isClaimsFinalized={isDependentClaimsFinalizedState}
             >
               <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto">
-                {!isDependentClaimsLoadingState ||
-                isDependentClaimsAmendedState ? (
+                {isDependentAmendmentClaimsLoading ? (
+                  <OrbitingRingsLoader />
+                ) : !isDependentClaimsAmendedState ||
+                  isDependentClaimsLoadingState ? (
                   <div className="w-full h-full flex items-center justify-center">
                     <p className="text-gray-500">
                       {rightViewMode === "Suggested Amendment"
@@ -451,13 +613,26 @@ const DependentClaims = () => {
         </div>
       </div>
       <ConfirmationModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onConfirm={handleConfirmation}
+        isOpen={isRegenerateModalOpen}
+        onClose={handleRegenerateCloseModal}
+        onConfirm={handleRegenerateConfirmation}
         title="Are you sure?"
         message="This will regenerate the dependent claims and amendment claims suggestion."
         confirmButtonText="Regenerate"
         cancelButtonText="Cancel"
+      />
+      <FinalizeConfirmationModal
+        isOpen={isFinalizeModalOpen}
+        onClose={handleFinalizeCloseModal}
+        onConfirm={handleFinalizeConfirmation}
+        // onViewDetails={handleViewCurrentDetails}
+        title="Replace Existing Amendment?"
+        message="Do you want to finalize this claim amendment for response generation?"
+        confirmButtonText="Replace"
+        cancelButtonText="Cancel"
+        currentFinalizedText="CURRENTLY FINALIZED"
+        sourceTabText='From "Technical Comparison" Tab'
+        warningNoteText="This will replace the existing finalized amendment"
       />
       <FullScreenTable
         isOpen={isFullScreenOpen}

@@ -10,8 +10,8 @@ const TabsSection = ({ data, children }) => {
     { href: "/technicalcomparison", tabName: "Technical Comparison" },
     { href: "/novelfeatures", tabName: "Novel Features" },
     { href: "/dependentclaims", tabName: "Dependent Claims" },
-    { href: "/compositeamendments", tabName: "Composite Amendments" },
     { href: "/onefeatures", tabName: "One Features" },
+    { href: "/compositeamendments", tabName: "Composite Amendments" },
     { href: "/userinteraction", tabName: "User Interaction" },
   ];
   const dispatch = useDispatch();
@@ -21,6 +21,16 @@ const TabsSection = ({ data, children }) => {
     (state) => state.applicationDockets?.showDocket[data._id]
   );
   const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 1536);
+
+  const currentApplicationDocuments = useSelector(
+    (state) => state.user.applicationDocuments[data.applicationId]
+  );
+  const isClaimsUploading =
+    currentApplicationDocuments?.isSubjectClaimsUploading;
+  const isSubjectDescriptionFetching =
+    currentApplicationDocuments?.isSubjectDescriptionFetching;
+  const isPriorDescriptionFetching =
+    currentApplicationDocuments?.isPriorArtDescriptionFetching;
 
   const toggleShowDocketTab = () => {
     dispatch(
@@ -70,6 +80,11 @@ const TabsSection = ({ data, children }) => {
                     ? "bg-white"
                     : "bg-gradient-to-r from-[#eef7ff] to-[#f3fff3]"
                 }`}
+                disabled={
+                  isClaimsUploading ||
+                  isPriorDescriptionFetching ||
+                  isSubjectDescriptionFetching
+                }
               >
                 <i className="fa-solid fa-bars-staggered"></i>
                 <span className="truncate whitespace-nowrap overflow-hidden text-ellipsis">

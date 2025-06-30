@@ -11,6 +11,7 @@ import {
   clearShowState,
   clearDocketState,
 } from "../store/slices/applicationDocketsSlice";
+import { setFlag } from "../store/slices/draftSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { ChevronsRight, ChevronsDown } from "lucide-react";
 import FullScreenTable from "../components/FullScreenTable";
@@ -21,6 +22,7 @@ import DocketsContentPanel from "../components/DocketsContentPanel";
 import DocketsHeaderSection from "../components/DocketsHeaderSection";
 import DocketsToggleButtons from "../components/DocketsToggleButtons";
 import { updateDocketData } from "../store/slices/latestApplicationsSlice";
+import FinalizeConfirmationModal from "../components/FinalizeConfirmationModal";
 
 const OneFeatures = () => {
   const dispatch = useDispatch();
@@ -32,7 +34,6 @@ const OneFeatures = () => {
   const isLatestApplicationLoading = useSelector(
     (state) => state.loading.isLatestApplicationLoading
   );
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [leftViewMode, setLeftViewMode] = useState("Table");
   const authUser = useSelector((state) => state.user.authUser);
   const [isExtraLargeScreen, setIsExtraLargeScreen] = useState(
@@ -40,7 +41,9 @@ const OneFeatures = () => {
   );
   const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
   const activeDocketId = useSelector((state) => state.user.docketId);
+  const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false);
   const [rightViewMode, setRightViewMode] = useState("Suggested Amendment");
+  const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
   const activeApplicationId = useSelector((state) => state.user.applicationId);
 
   const currentApplicationRejections = useSelector(
@@ -50,6 +53,10 @@ const OneFeatures = () => {
     currentApplicationRejections?.isOneFeaturesLoading;
   const isOneFeaturesClaimsAmended =
     currentApplicationRejections?.isOneFeaturesClaimsAmended;
+  const isOneFeaturesClaimsFinalized =
+    currentApplicationRejections?.isOneFeaturesFinalized;
+  const isOneFeaturesAmendmentClaimsLoading =
+    currentApplicationRejections?.isOneFeaturesAmendmentClaimsLoading;
 
   const patentData = [
     {
@@ -62,15 +69,108 @@ const OneFeatures = () => {
     })) || []),
   ];
 
-  const handleOpenModal = () => setIsModalOpen(true);
-  const handleCloseModal = () => setIsModalOpen(false);
-  const handleConfirmation = () => {
+  const handleRegenerateOpenModal = () => setIsRegenerateModalOpen(true);
+  const handleRegenerateCloseModal = () => setIsRegenerateModalOpen(false);
+  const handleRegenerateConfirmation = () => {
+    dispatch(
+      setApplicationRejections({
+        rejectionId: activeDocketId,
+        name: "isOneFeaturesFinalized",
+        value: false,
+      })
+    );
     analyseOneFeatures(activeApplicationId, activeDocketId);
-    handleCloseModal();
+    handleRegenerateCloseModal();
+  };
+  const handleRegenerate = () => {
+    if (isOneFeaturesAmendmentClaimsLoading) {
+      return;
+    }
+    handleRegenerateOpenModal();
   };
 
-  const handleRegenerate = () => {
-    handleOpenModal();
+  const handleFinalizeOpenModal = () => setIsFinalizeModalOpen(true);
+  const handleFinalizeCloseModal = () => setIsFinalizeModalOpen(false);
+  const handleFinalizeConfirmation = async () => {
+    handleFinalizeCloseModal();
+    if (
+      !docketData?.oneFeaturesData?.amendedClaim ||
+      !isOneFeaturesClaimsAmended
+    ) {
+      return toast.error("Please amend the claims first");
+    } else if (isOneFeaturesClaimsFinalized) {
+      return;
+    }
+
+    try {
+      await post("/rejection/finalize", {
+        token: authUser.token,
+        rejectionId: docketData.rejectionId,
+        applicationId: activeApplicationId,
+        type: "oneFeatures",
+        amendedClaim: docketData.technicalData.amendedClaim,
+        comparisonTable: docketData.technicalData.comparisonTable,
+        amendmentStrategy: docketData.technicalData.amendmentStrategy,
+      });
+
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isTechnicalComparisonFinalized",
+          value: false,
+        })
+      );
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isNovelFeaturesFinalized",
+          value: false,
+        })
+      );
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isDependentClaimsFinalized",
+          value: false,
+        })
+      );
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isCompositeAmendmentFinalized",
+          value: false,
+        })
+      );
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isOneFeaturesFinalized",
+          value: true,
+        })
+      );
+      dispatch(setFlag());
+      dispatch(
+        updateDocketData({
+          applicationId: activeApplicationId,
+          docketId: activeDocketId,
+          name: "finalizedType",
+          value: "oneFeatures",
+        })
+      );
+      toast.success("Amendment finalized successfully");
+    } catch (error) {
+      if (enviroment === "development") {
+        console.log(error);
+      }
+      toast.error("Failed to finalize amendment");
+    }
+  };
+  const handleFinalizeClick = async (e) => {
+    e.preventDefault();
+    if (isOneFeaturesClaimsFinalized) {
+      return;
+    }
+    handleFinalizeOpenModal();
   };
 
   const openFullScreen = () => setIsFullScreenOpen(true);
@@ -105,7 +205,7 @@ const OneFeatures = () => {
     }
   };
 
-  const handleAmendClaimsClick = (e) => {
+  const handleAmendClaimsClick = async (e) => {
     e.preventDefault();
     if (
       isOneFeaturesClaimsLoading ||
@@ -113,6 +213,21 @@ const OneFeatures = () => {
     ) {
       return;
     }
+    dispatch(
+      setApplicationRejections({
+        rejectionId: activeDocketId,
+        name: "isOneFeaturesAmendmentClaimsLoading",
+        value: true,
+      })
+    );
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    dispatch(
+      setApplicationRejections({
+        rejectionId: activeDocketId,
+        name: "isOneFeaturesAmendmentClaimsLoading",
+        value: false,
+      })
+    );
     dispatch(
       setApplicationRejections({
         rejectionId: activeDocketId,
@@ -142,18 +257,31 @@ const OneFeatures = () => {
           value: false,
         })
       );
-      // if (docketData.rejectionType === "102") {
-      //   response = await post("/tabs/102/onefeatures", {
-      //     token: authUser.token,
-      //     data: docketData,
-      //   });
-      // }
+      if (docketData.rejectionType === "102") {
+        response = await post("/tabs/102/onefeatures", {
+          token: authUser.token,
+          data: docketData,
+        });
+      } else if (docketData.rejectionType === "103") {
+        response = await post("/tabs/103/onefeatures", {
+          token: authUser.token,
+          data: docketData,
+        });
+      }
       dispatch(
         updateDocketData({
           applicationId: applicationId,
           docketId: docketId,
           name: "oneFeaturesData",
           value: response.data.data,
+        })
+      );
+      dispatch(
+        updateDocketData({
+          applicationId: applicationId,
+          docketId: docketId,
+          name: "showFinalizedType",
+          value: false,
         })
       );
     } catch (error) {
@@ -198,7 +326,8 @@ const OneFeatures = () => {
       (docketData &&
         Object.keys(docketData).length &&
         docketData?.oneFeaturesData &&
-        !Object.keys(docketData?.oneFeaturesData).length) ||
+        !Object.keys(docketData?.oneFeaturesData).length &&
+        !isOneFeaturesClaimsLoading) ||
       (docketData &&
         Object.keys(docketData).length &&
         docketData.oneFeaturesData === undefined &&
@@ -207,6 +336,27 @@ const OneFeatures = () => {
       analyseOneFeatures(activeApplicationId, activeDocketId);
     }
   }, [docketData]);
+
+  useEffect(() => {
+    if (docketData.finalizedType && docketData.showFinalizedType) {
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name:
+            docketData.finalizedType === "technicalComparison"
+              ? "isTechnicalComparisonFinalized"
+              : docketData.finalizedType === "novelFeatures"
+              ? "isNovelFeaturesFinalized"
+              : docketData.finalizedType === "dependentClaims"
+              ? "isDependentClaimsFinalized"
+              : docketData.finalizedType === "compositeAmendment"
+              ? "isCompositeAmendmentFinalized"
+              : "isOneFeaturesFinalized",
+          value: true,
+        })
+      );
+    }
+  }, [docketData.finalizedType, docketData.showFinalizedType]);
 
   useEffect(() => {
     if (activeDocketId && activeApplicationId) {
@@ -243,6 +393,7 @@ const OneFeatures = () => {
               }
               onDownload={() => handleDownload("left")}
               onRegenerate={() => handleRegenerate()}
+              isClaimsLoading={isOneFeaturesAmendmentClaimsLoading}
               onFullScreen={
                 leftViewMode === "Table" &&
                 !isOneFeaturesClaimsLoading &&
@@ -264,14 +415,11 @@ const OneFeatures = () => {
                   <table className="w-full border-collapse border border-gray-300 border-t-0 text-center">
                     <thead>
                       <tr className="border-b border-gray-300 bg-[#0284c7] sticky -top-3 z-10">
-                        <th className="py-2 px-4 w-1/3 text-md font-bold text-white max-[425px]:px-2 border-r border-gray-300">
+                        <th className="py-3 px-6 w-1/2 text-md font-bold text-white border-r border-gray-300">
                           Subject Application
                         </th>
-                        <th className="py-2 px-4 w-1/3 text-md font-bold text-white max-[425px]:px-2 border-r border-gray-300">
+                        <th className="py-3 px-6 w-1/2 text-md font-bold text-white">
                           Prior Art
-                        </th>
-                        <th className="py-2 px-4 w-1/3 text-md font-bold text-white max-[425px]:px-2">
-                          Differentiating Feature
                         </th>
                       </tr>
                     </thead>
@@ -284,14 +432,11 @@ const OneFeatures = () => {
                               index % 2 === 0 ? "bg-gray-200" : "bg-white"
                             } hover:bg-gray-200/50`}
                           >
-                            <td className="py-2 px-4 text-sm font-semibold text-gray-800 max-[425px]:px-2 border-r border-gray-300 text-left align-top">
+                            <td className="py-3 px-6 text-sm font-medium text-gray-800 border-r border-gray-300 text-left align-top">
                               {comparison.subjectApplication}
                             </td>
-                            <td className="py-2 px-4 text-sm font-semibold text-gray-800 max-[425px]:px-2 border-r border-gray-300 text-left align-top">
+                            <td className="py-3 px-6 text-sm font-medium text-gray-800 text-left align-top">
                               <span>{comparison.priorArt}</span>
-                            </td>
-                            <td className="py-2 px-4 text-sm font-semibold text-gray-800 max-[425px]:px-2 text-left align-top">
-                              {comparison.differentiatingFeature}
                             </td>
                           </tr>
                         )
@@ -326,14 +471,19 @@ const OneFeatures = () => {
             <div className="inline-block relative">
               <button
                 className={`h-10 w-10 rounded-full bg-[#3586cb] flex items-center justify-center shadow-sm cursor-pointer text-white tooltip-trigger ${
-                  isOneFeaturesClaimsLoading
+                  isOneFeaturesClaimsLoading ||
+                  isOneFeaturesAmendmentClaimsLoading
                     ? ""
                     : isOneFeaturesClaimsAmended
                     ? ""
                     : "animate-pulse"
                 }`}
                 onClick={handleAmendClaimsClick}
-                disabled={isOneFeaturesClaimsLoading}
+                disabled={
+                  isOneFeaturesClaimsLoading ||
+                  isOneFeaturesClaimsAmended ||
+                  isOneFeaturesAmendmentClaimsLoading
+                }
               >
                 {isExtraLargeScreen ? <ChevronsRight /> : <ChevronsDown />}
               </button>
@@ -348,7 +498,9 @@ const OneFeatures = () => {
                 before:border-4 before:border-transparent before:border-b-gray-800
               "
               >
-                Click to amend claims
+                {isOneFeaturesClaimsAmended
+                  ? "Claims amended"
+                  : "Click to amend claims"}
               </div>
             </div>
           </div>
@@ -364,10 +516,20 @@ const OneFeatures = () => {
                 />
               }
               onDownload={() => handleDownload("right")}
-              onRegenerate={() => handleRegenerate()}
+              onFinalize={
+                isOneFeaturesClaimsAmended &&
+                !isOneFeaturesClaimsLoading &&
+                rightViewMode === "Suggested Amendment"
+                  ? handleFinalizeClick
+                  : null
+              }
+              isClaimsFinalized={isOneFeaturesClaimsFinalized}
             >
               <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto">
-                {!isOneFeaturesClaimsAmended || isOneFeaturesClaimsLoading ? (
+                {isOneFeaturesAmendmentClaimsLoading ? (
+                  <OrbitingRingsLoader />
+                ) : !isOneFeaturesClaimsAmended ||
+                  isOneFeaturesClaimsLoading ? (
                   <div className="w-full h-full flex items-center justify-center">
                     <p className="text-gray-500">
                       {rightViewMode === "Suggested Amendment"
@@ -450,13 +612,26 @@ const OneFeatures = () => {
         </div>
       </div>
       <ConfirmationModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onConfirm={handleConfirmation}
+        isOpen={isRegenerateModalOpen}
+        onClose={handleRegenerateCloseModal}
+        onConfirm={handleRegenerateConfirmation}
         title="Are you sure?"
         message="This will regenerate the one features and amendment claims suggestion."
         confirmButtonText="Regenerate"
         cancelButtonText="Cancel"
+      />
+      <FinalizeConfirmationModal
+        isOpen={isFinalizeModalOpen}
+        onClose={handleFinalizeCloseModal}
+        onConfirm={handleFinalizeConfirmation}
+        // onViewDetails={handleViewCurrentDetails}
+        title="Replace Existing Amendment?"
+        message="Do you want to finalize this claim amendment for response generation?"
+        confirmButtonText="Replace"
+        cancelButtonText="Cancel"
+        currentFinalizedText="CURRENTLY FINALIZED"
+        sourceTabText='From "Technical Comparison" Tab'
+        warningNoteText="This will replace the existing finalized amendment"
       />
       <FullScreenTable
         isOpen={isFullScreenOpen}

@@ -3,11 +3,18 @@ import {
   Check,
   FileUp,
   FilePen,
+  FileDown,
   RotateCcw,
   ChevronDown,
   CloudUpload,
+  CheckCircle2,
   ExternalLink,
 } from "lucide-react";
+import axios from "axios";
+import {
+  setIsGenerating,
+  updateFinalizationStatus,
+} from "../store/slices/draftSlice";
 import {
   setIsDocketsAnalysing,
   clearIsDocketsAnalysing,
@@ -29,8 +36,13 @@ import { Navigate, useNavigate } from "react-router-dom";
 import ReasoningSection from "../components/ReasoningSection";
 import ClaimStatusModal from "../components/ClaimStatusModal";
 import ConfirmationModal from "../components/ConfirmationModal";
+import DraftPreviewModal from "../components/DraftPreviewModal";
+import OtherRejectionsModal from "../components/OtherRejectionsModal";
 import { setIsClaimStatusModalOpen } from "../store/slices/modalsSlice";
-import { clearShowState } from "../store/slices/applicationDocketsSlice";
+import {
+  clearShowState,
+  clearDocketState,
+} from "../store/slices/applicationDocketsSlice";
 import { setLatestApplication } from "../store/slices/latestApplicationsSlice";
 import ApplicationAnalyseSkeleton from "../skeletons/ApplicationAnalyseSkeleton";
 
@@ -83,7 +95,13 @@ const Application = () => {
     (state) => state.loading.isLatestApplicationLoading
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const draftState = useSelector((state) => state.draft);
+  const [showDraftPreview, setShowDraftPreview] = useState(false);
   const activeApplicationId = useSelector((state) => state.user.applicationId);
+
+  const finalizationStatus = draftState.finalizationStatus[activeApplicationId];
+  const canGenerateDraft = finalizationStatus?.allFinalized;
+
   const currentApplicationDocuments = useSelector(
     (state) => state.user.applicationDocuments[activeApplicationId]
   );
@@ -106,6 +124,11 @@ const Application = () => {
     currentApplicationDocuments?.showApplicationDocumentsLoading;
   const claimsUploaded = currentApplicationDocuments?.subjectClaimsUploaded;
   const claimsUploadFailed = currentApplicationDocuments?.subjectClaimsFailed;
+
+  const [otherRejectionModal, setOtherRejectionModal] = useState({
+    isOpen: false,
+    rejection: null,
+  });
 
   const toggleCollapse = () => setIsCollapsed((prev) => !prev);
 
@@ -592,6 +615,138 @@ const Application = () => {
     dispatch(setDocketId(docket._id));
     navigate("/technicalcomparison");
   };
+
+  const handleOtherRejectionClick = (rejection) => {
+    setOtherRejectionModal({
+      isOpen: true,
+      rejection,
+    });
+  };
+
+  const checkFinalizationStatus = async () => {
+    if (!data || !activeApplicationId) {
+      return;
+    }
+
+    const rejectionStatuses = {};
+    const promises = [];
+
+    if (data.rejections) {
+      data.rejections.forEach((rejection) => {
+        const isAnalysisRejection =
+          rejection.rejectionType.includes("102") ||
+          rejection.rejectionType.includes("103");
+
+        promises.push(
+          (async () => {
+            try {
+              let isFinalized = false;
+
+              if (isAnalysisRejection) {
+                if (rejection.analyseRejection) {
+                  const result = await post(`/rejection/status`, {
+                    token: authUser.token,
+                    rejectionId: rejection._id,
+                  });
+                  isFinalized = result.data.data;
+                  rejectionStatuses[rejection._id] = { isFinalized };
+                }
+              } else {
+                const result = await post(`/rejection/other/fetch`, {
+                  token: authUser.token,
+                  rejectionId: rejection._id,
+                  applicationId: activeApplicationId,
+                });
+                isFinalized = result.data.data?.status === "finalized";
+                rejectionStatuses[rejection._id] = { isFinalized };
+              }
+            } catch (error) {
+              if (error.status === 401 || error.status === 404) {
+                dispatch(clearDocketState());
+                dispatch(clearUserSlice());
+              }
+            }
+          })()
+        );
+      });
+    }
+
+    await Promise.all(promises);
+
+    dispatch(
+      updateFinalizationStatus({
+        applicationId: activeApplicationId,
+        rejectionStatuses,
+      })
+    );
+  };
+
+  const handleGenerateDraft = async () => {
+    if (!canGenerateDraft) {
+      return toast.error(
+        "Please finalize all rejections before generating draft"
+      );
+    }
+
+    try {
+      dispatch(setIsGenerating(true));
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/draft/generate`,
+        {
+          token: authUser.token,
+          applicationId: activeApplicationId,
+          applicationNumber: data.applicationNumber,
+        },
+        {
+          responseType: "arraybuffer",
+          headers: {
+            Accept:
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          },
+        }
+      );
+
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Draft_Response_${data.applicationNumber}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Draft response generated successfully");
+    } catch (error) {
+      if (enviroment === "development") {
+        console.log(error);
+      }
+      if (error.status === 401 || error.status === 404) {
+        dispatch(clearDocketState());
+        dispatch(clearUserSlice());
+      } else {
+        toast.error("Failed to generate draft response");
+      }
+    } finally {
+      dispatch(setIsGenerating(false));
+    }
+  };
+
+  const handleShowDraftPreview = () => {
+    if (!canGenerateDraft) {
+      return toast.error(
+        "Please finalize all rejections before generating draft"
+      );
+    }
+    setShowDraftPreview(true);
+  };
+
+  useEffect(() => {
+    if (data && data.applicationId === activeApplicationId) {
+      checkFinalizationStatus();
+    }
+  }, [data, draftState.flag]);
 
   useEffect(() => {
     async function applicationDocumentsFetch() {
@@ -1168,22 +1323,9 @@ const Application = () => {
                     key={idx}
                     className="bg-gradient-to-l from-[#e6eefa] to-[#f0faf4] rounded-xl px-6 py-6 sm:px-8 sm:py-8 h-fit shadow-lg flex flex-col gap-6 max-[425px]:px-2 max-[375px]:px-1"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <h2
-                        id="law-heading"
-                        className="font-[500] text-[1.25rem]"
-                      >
-                        {rejection.rejectionType.split(",")[0]}
-                      </h2>
-                      {(rejection.rejectionType.includes("102") ||
-                        rejection.rejectionType.includes("103")) && (
-                        <span className="inline-flex items-center rounded-md bg-gradient-to-r from-[#44b9ff] to-[#3586cb] text-white px-3 py-2 text-sm font-medium ring-1 ring-gray-500/10 ring-inset">
-                          {rejection.rejectionType.includes("102")
-                            ? "102 Rejection Detected"
-                            : "103 Rejection Detected"}
-                        </span>
-                      )}
-                    </div>
+                    <h2 id="law-heading" className="font-[500] text-[1.25rem]">
+                      {rejection.rejectionType.split(",")[0]}
+                    </h2>
                     {rejection.claimsRejected.length > 0 && (
                       <div className="flex flex-col gap-3">
                         <span className="font-bold text-gray-600 text-lg">
@@ -1241,7 +1383,7 @@ const Application = () => {
                         examinerReasoning={rejection.examinerReasoning}
                       />
                     )}
-                    {rejection?.analyseRejection && (
+                    {rejection?.analyseRejection ? (
                       <>
                         {data?.dockets?.some(
                           (docket) => docket.rejectionId === rejection._id
@@ -1306,13 +1448,119 @@ const Application = () => {
                           </div>
                         )}
                       </>
+                    ) : (
+                      !(
+                        rejection.rejectionType.includes("102") ||
+                        rejection.rejectionType.includes("103")
+                      ) && (
+                        <div className="w-full flex items-center justify-end">
+                          <button
+                            type="button"
+                            className="h-12 py-2 px-4 rounded-md cursor-pointer bg-[#0284c7] hover:bg-[#026395] font-semibold flex gap-2 justify-center items-center text-white shadow-md"
+                            onClick={() => handleOtherRejectionClick(rejection)}
+                            disabled={
+                              !data.isSubjectDescriptionExists ||
+                              !data.isSubjectClaimsExists ||
+                              !data.isPriorArtDescriptionExists ||
+                              isClaimsUploading ||
+                              isPriorDescriptionFetching ||
+                              isSubjectDescriptionFetching
+                            }
+                          >
+                            <span>Review</span>
+                            <i className="fa-solid fa-comment-dots"></i>
+                          </button>
+                        </div>
+                      )
                     )}
                   </section>
                 );
               })}
           </>
         )}
+        {data && data.rejections?.length > 0 && (
+          <section className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl px-6 py-6 sm:px-8 sm:py-8 h-fit shadow-lg flex flex-col gap-4 max-[425px]:px-2 max-[375px]:px-1 border-2 border-green-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold text-xl text-gray-800">
+                  Office Action Response
+                </h2>
+                <p className="text-gray-600 text-sm mt-1">
+                  {finalizationStatus?.allFinalized
+                    ? "All rejections have been addressed. Ready to generate response."
+                    : `${
+                        Object.values(
+                          finalizationStatus?.rejections || {}
+                        ).filter((r) => r.isFinalized).length
+                      } of ${data.rejections.length} rejections finalized`}
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex gap-2">
+                  {data.rejections.map((rejection, idx) => {
+                    const status =
+                      finalizationStatus?.rejections[rejection._id];
+                    return (
+                      <div
+                        key={idx}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                          status?.isFinalized
+                            ? "bg-green-600 text-white"
+                            : "bg-gray-300 text-gray-600"
+                        }`}
+                        title={`${rejection.rejectionType} - ${
+                          status?.isFinalized ? "Finalized" : "Pending"
+                        }`}
+                      >
+                        {status?.isFinalized ? (
+                          <CheckCircle2 size={16} />
+                        ) : (
+                          idx + 1
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className={`px-6 py-3 rounded-lg font-semibold flex gap-2 items-center shadow-md transition-all duration-200 ${
+                  canGenerateDraft
+                    ? "bg-green-600 hover:bg-green-700 text-white cursor-pointer"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                }`}
+                onClick={handleShowDraftPreview}
+                disabled={
+                  !canGenerateDraft ||
+                  draftState.isGenerating ||
+                  !data.isSubjectDescriptionExists ||
+                  !data.isSubjectClaimsExists ||
+                  !data.isPriorArtDescriptionExists ||
+                  isClaimsUploading ||
+                  isPriorDescriptionFetching ||
+                  isSubjectDescriptionFetching
+                }
+              >
+                {draftState.isGenerating ? (
+                  <>
+                    <div className="w-6 h-6 border-4 border-t-green-800 border-white rounded-full animate-spin"></div>
+                    <span>Generating Draft...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileDown size={20} />
+                    <span>Generate Draft Response</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </section>
+        )}
       </div>
+
       <ClaimStatusModal claimStatus={data?.claimStatus} />
       <ConfirmationModal
         isOpen={isModalOpen}
@@ -1322,6 +1570,20 @@ const Application = () => {
         message="Uploading a new claim file will regenerate the office action analysis including the suggested claim amendment."
         confirmButtonText="Ok"
         cancelButtonText="Cancel"
+      />
+      <OtherRejectionsModal
+        isOpen={otherRejectionModal.isOpen}
+        onClose={() =>
+          setOtherRejectionModal({ isOpen: false, rejection: null })
+        }
+        rejection={otherRejectionModal.rejection}
+        applicationId={data?.applicationId}
+      />
+      <DraftPreviewModal
+        isOpen={showDraftPreview}
+        onClose={() => setShowDraftPreview(false)}
+        applicationId={activeApplicationId}
+        onGenerate={handleGenerateDraft}
       />
     </>
   );

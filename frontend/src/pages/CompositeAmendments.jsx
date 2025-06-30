@@ -11,6 +11,7 @@ import {
   clearShowState,
   clearDocketState,
 } from "../store/slices/applicationDocketsSlice";
+import { setFlag } from "../store/slices/draftSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { ChevronsRight, ChevronsDown } from "lucide-react";
 import FullScreenTable from "../components/FullScreenTable";
@@ -21,6 +22,7 @@ import DocketsContentPanel from "../components/DocketsContentPanel";
 import DocketsHeaderSection from "../components/DocketsHeaderSection";
 import DocketsToggleButtons from "../components/DocketsToggleButtons";
 import { updateDocketData } from "../store/slices/latestApplicationsSlice";
+import FinalizeConfirmationModal from "../components/FinalizeConfirmationModal";
 
 const CompositeAmendments = () => {
   const dispatch = useDispatch();
@@ -32,7 +34,6 @@ const CompositeAmendments = () => {
   const isLatestApplicationLoading = useSelector(
     (state) => state.loading.isLatestApplicationLoading
   );
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [leftViewMode, setLeftViewMode] = useState("Table");
   const authUser = useSelector((state) => state.user.authUser);
   const [isExtraLargeScreen, setIsExtraLargeScreen] = useState(
@@ -40,7 +41,9 @@ const CompositeAmendments = () => {
   );
   const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
   const activeDocketId = useSelector((state) => state.user.docketId);
+  const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false);
   const [rightViewMode, setRightViewMode] = useState("Suggested Amendment");
+  const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
   const activeApplicationId = useSelector((state) => state.user.applicationId);
 
   const currentApplicationRejections = useSelector(
@@ -50,6 +53,10 @@ const CompositeAmendments = () => {
     currentApplicationRejections?.isCompositeAmendmentLoading;
   const isCompositeClaimsAmended =
     currentApplicationRejections?.isCompositeAmendmentClaimsAmended;
+  const isCompositeClaimsFinalized =
+    currentApplicationRejections?.isCompositeAmendmentFinalized;
+  const isCompositeAmendmentClaimsLoading =
+    currentApplicationRejections?.isCompositeAmendmentClaimsLoading;
 
   const patentData = [
     {
@@ -62,15 +69,105 @@ const CompositeAmendments = () => {
     })) || []),
   ];
 
-  const handleOpenModal = () => setIsModalOpen(true);
-  const handleCloseModal = () => setIsModalOpen(false);
-  const handleConfirmation = () => {
+  const handleRegenerateOpenModal = () => setIsRegenerateModalOpen(true);
+  const handleRegenerateCloseModal = () => setIsRegenerateModalOpen(false);
+  const handleRegenerateConfirmation = () => {
+    dispatch(
+      setApplicationRejections({
+        rejectionId: activeDocketId,
+        name: "isCompositeAmendmentFinalized",
+        value: false,
+      })
+    );
     analyseCompositeComparison(activeApplicationId, activeDocketId);
-    handleCloseModal();
+    handleRegenerateCloseModal();
+  };
+  const handleRegenerate = () => {
+    if (isCompositeAmendmentClaimsLoading) {
+      return;
+    }
+    handleRegenerateOpenModal();
   };
 
-  const handleRegenerate = () => {
-    handleOpenModal();
+  const handleFinalizeOpenModal = () => setIsFinalizeModalOpen(true);
+  const handleFinalizeCloseModal = () => setIsFinalizeModalOpen(false);
+  const handleFinalizeConfirmation = async () => {
+    handleFinalizeCloseModal();
+    if (!docketData?.compositeData?.amendedClaim || !isCompositeClaimsAmended) {
+      return toast.error("Please amend the claims first");
+    } else if (isCompositeClaimsFinalized) {
+      return;
+    }
+
+    try {
+      await post("/rejection/finalize", {
+        token: authUser.token,
+        rejectionId: docketData.rejectionId,
+        applicationId: activeApplicationId,
+        type: "compositeAmendment",
+        amendedClaim: docketData.technicalData.amendedClaim,
+        comparisonTable: docketData.technicalData.comparisonTable,
+        amendmentStrategy: docketData.technicalData.amendmentStrategy,
+      });
+
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isTechnicalComparisonFinalized",
+          value: false,
+        })
+      );
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isNovelFeaturesFinalized",
+          value: false,
+        })
+      );
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isDependentClaimsFinalized",
+          value: false,
+        })
+      );
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isCompositeAmendmentFinalized",
+          value: true,
+        })
+      );
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isOneFeaturesFinalized",
+          value: false,
+        })
+      );
+      dispatch(setFlag());
+      dispatch(
+        updateDocketData({
+          applicationId: activeApplicationId,
+          docketId: activeDocketId,
+          name: "finalizedType",
+          value: "compositeAmendment",
+        })
+      );
+      toast.success("Amendment finalized successfully");
+    } catch (error) {
+      if (enviroment === "development") {
+        console.log(error);
+      }
+      toast.error("Failed to finalize amendment");
+    }
+  };
+  const handleFinalizeClick = async (e) => {
+    e.preventDefault();
+    if (isCompositeClaimsFinalized) {
+      return;
+    }
+    handleFinalizeOpenModal();
   };
 
   const openFullScreen = () => setIsFullScreenOpen(true);
@@ -105,11 +202,26 @@ const CompositeAmendments = () => {
     }
   };
 
-  const handleAmendClaimsClick = (e) => {
+  const handleAmendClaimsClick = async (e) => {
     e.preventDefault();
     if (isCompositeClaimsLoading || !docketData?.compositeData?.amendedClaim) {
       return;
     }
+    dispatch(
+      setApplicationRejections({
+        rejectionId: activeDocketId,
+        name: "isCompositeAmendmentClaimsLoading",
+        value: true,
+      })
+    );
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    dispatch(
+      setApplicationRejections({
+        rejectionId: activeDocketId,
+        name: "isCompositeAmendmentClaimsLoading",
+        value: false,
+      })
+    );
     dispatch(
       setApplicationRejections({
         rejectionId: activeDocketId,
@@ -139,18 +251,31 @@ const CompositeAmendments = () => {
           value: false,
         })
       );
-      // if (docketData.rejectionType === "102") {
-      // response = await post("/tabs/102/compositeamendments", {
-      //   token: authUser.token,
-      //   data: docketData,
-      // });
-      // }
+      if (docketData.rejectionType === "102") {
+        response = await post("/tabs/102/compositeamendments", {
+          token: authUser.token,
+          data: docketData,
+        });
+      } else if (docketData.rejectionType === "103") {
+        response = await post("/tabs/103/compositeamendments", {
+          token: authUser.token,
+          data: docketData,
+        });
+      }
       dispatch(
         updateDocketData({
           applicationId: applicationId,
           docketId: docketId,
           name: "compositeData",
           value: response.data.data,
+        })
+      );
+      dispatch(
+        updateDocketData({
+          applicationId: applicationId,
+          docketId: docketId,
+          name: "showFinalizedType",
+          value: false,
         })
       );
     } catch (error) {
@@ -195,7 +320,8 @@ const CompositeAmendments = () => {
       (docketData &&
         Object.keys(docketData).length &&
         docketData?.compositeData &&
-        !Object.keys(docketData?.compositeData).length) ||
+        !Object.keys(docketData?.compositeData).length &&
+        !isCompositeClaimsLoading) ||
       (docketData &&
         Object.keys(docketData).length &&
         docketData.compositeData === undefined &&
@@ -204,6 +330,27 @@ const CompositeAmendments = () => {
       analyseCompositeComparison(activeApplicationId, activeDocketId);
     }
   }, [docketData]);
+
+  useEffect(() => {
+    if (docketData.finalizedType && docketData.showFinalizedType) {
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name:
+            docketData.finalizedType === "technicalComparison"
+              ? "isTechnicalComparisonFinalized"
+              : docketData.finalizedType === "novelFeatures"
+              ? "isNovelFeaturesFinalized"
+              : docketData.finalizedType === "dependentClaims"
+              ? "isDependentClaimsFinalized"
+              : docketData.finalizedType === "compositeAmendment"
+              ? "isCompositeAmendmentFinalized"
+              : "isOneFeaturesFinalized",
+          value: true,
+        })
+      );
+    }
+  }, [docketData.finalizedType, docketData.showFinalizedType]);
 
   useEffect(() => {
     if (activeDocketId && activeApplicationId) {
@@ -240,6 +387,7 @@ const CompositeAmendments = () => {
               }
               onDownload={() => handleDownload("left")}
               onRegenerate={() => handleRegenerate()}
+              isClaimsLoading={isCompositeAmendmentClaimsLoading}
               onFullScreen={
                 leftViewMode === "Table" &&
                 !isCompositeClaimsLoading &&
@@ -261,14 +409,11 @@ const CompositeAmendments = () => {
                   <table className="w-full border-collapse border border-gray-300 border-t-0 text-center">
                     <thead>
                       <tr className="border-b border-gray-300 bg-[#0284c7] sticky -top-3 z-10">
-                        <th className="py-2 px-4 w-1/3 text-md font-bold text-white max-[425px]:px-2 border-r border-gray-300">
+                        <th className="py-3 px-6 w-1/2 text-md font-bold text-white border-r border-gray-300">
                           Subject Application
                         </th>
-                        <th className="py-2 px-4 w-1/3 text-md font-bold text-white max-[425px]:px-2 border-r border-gray-300">
+                        <th className="py-3 px-6 w-1/2 text-md font-bold text-white">
                           Prior Art
-                        </th>
-                        <th className="py-2 px-4 w-1/3 text-md font-bold text-white max-[425px]:px-2">
-                          Differentiating Feature
                         </th>
                       </tr>
                     </thead>
@@ -281,14 +426,11 @@ const CompositeAmendments = () => {
                               index % 2 === 0 ? "bg-gray-200" : "bg-white"
                             } hover:bg-gray-200/50`}
                           >
-                            <td className="py-2 px-4 text-sm font-semibold text-gray-800 max-[425px]:px-2 border-r border-gray-300 text-left align-top">
+                            <td className="py-3 px-6 text-sm font-medium text-gray-800 border-r border-gray-300 text-left align-top">
                               {comparison.subjectApplication}
                             </td>
-                            <td className="py-2 px-4 text-sm font-semibold text-gray-800 max-[425px]:px-2 border-r border-gray-300 text-left align-top">
+                            <td className="py-3 px-6 text-sm font-medium text-gray-800 text-left align-top">
                               <span>{comparison.priorArt}</span>
-                            </td>
-                            <td className="py-2 px-4 text-sm font-semibold text-gray-800 max-[425px]:px-2 text-left align-top">
-                              {comparison.differentiatingFeature}
                             </td>
                           </tr>
                         )
@@ -323,14 +465,18 @@ const CompositeAmendments = () => {
             <div className="inline-block relative">
               <button
                 className={`h-10 w-10 rounded-full bg-[#3586cb] flex items-center justify-center shadow-sm cursor-pointer text-white tooltip-trigger ${
-                  isCompositeClaimsLoading
+                  isCompositeClaimsLoading || isCompositeAmendmentClaimsLoading
                     ? ""
                     : isCompositeClaimsAmended
                     ? ""
                     : "animate-pulse"
                 }`}
                 onClick={handleAmendClaimsClick}
-                disabled={isCompositeClaimsLoading}
+                disabled={
+                  isCompositeClaimsLoading ||
+                  isCompositeClaimsAmended ||
+                  isCompositeAmendmentClaimsLoading
+                }
               >
                 {isExtraLargeScreen ? <ChevronsRight /> : <ChevronsDown />}
               </button>
@@ -345,7 +491,9 @@ const CompositeAmendments = () => {
                 before:border-4 before:border-transparent before:border-b-gray-800
               "
               >
-                Click to amend claims
+                {isCompositeClaimsAmended
+                  ? "Claims amended"
+                  : "Click to amend claims"}
               </div>
             </div>
           </div>
@@ -361,10 +509,19 @@ const CompositeAmendments = () => {
                 />
               }
               onDownload={() => handleDownload("right")}
-              onRegenerate={() => handleRegenerate()}
+              onFinalize={
+                isCompositeClaimsAmended &&
+                !isCompositeClaimsLoading &&
+                rightViewMode === "Suggested Amendment"
+                  ? handleFinalizeClick
+                  : null
+              }
+              isClaimsFinalized={isCompositeClaimsFinalized}
             >
               <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto">
-                {!isCompositeClaimsAmended || isCompositeClaimsLoading ? (
+                {isCompositeAmendmentClaimsLoading ? (
+                  <OrbitingRingsLoader />
+                ) : !isCompositeClaimsAmended || isCompositeClaimsLoading ? (
                   <div className="w-full h-full flex items-center justify-center">
                     <p className="text-gray-500">
                       {rightViewMode === "Suggested Amendment"
@@ -447,13 +604,26 @@ const CompositeAmendments = () => {
         </div>
       </div>
       <ConfirmationModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onConfirm={handleConfirmation}
+        isOpen={isRegenerateModalOpen}
+        onClose={handleRegenerateCloseModal}
+        onConfirm={handleRegenerateConfirmation}
         title="Are you sure?"
         message="This will regenerate the composite amendments and amendment claims suggestion."
         confirmButtonText="Regenerate"
         cancelButtonText="Cancel"
+      />
+      <FinalizeConfirmationModal
+        isOpen={isFinalizeModalOpen}
+        onClose={handleFinalizeCloseModal}
+        onConfirm={handleFinalizeConfirmation}
+        // onViewDetails={handleViewCurrentDetails}
+        title="Replace Existing Amendment?"
+        message="Do you want to finalize this claim amendment for response generation?"
+        confirmButtonText="Replace"
+        cancelButtonText="Cancel"
+        currentFinalizedText="CURRENTLY FINALIZED"
+        sourceTabText='From "Technical Comparison" Tab'
+        warningNoteText="This will replace the existing finalized amendment"
       />
       <FullScreenTable
         isOpen={isFullScreenOpen}

@@ -11,6 +11,7 @@ import {
   clearShowState,
   clearDocketState,
 } from "../store/slices/applicationDocketsSlice";
+import { setFlag } from "../store/slices/draftSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { ChevronsRight, ChevronsDown } from "lucide-react";
 import FullScreenTable from "../components/FullScreenTable";
@@ -21,6 +22,7 @@ import DocketsContentPanel from "../components/DocketsContentPanel";
 import DocketsHeaderSection from "../components/DocketsHeaderSection";
 import DocketsToggleButtons from "../components/DocketsToggleButtons";
 import { updateDocketData } from "../store/slices/latestApplicationsSlice";
+import FinalizeConfirmationModal from "../components/FinalizeConfirmationModal";
 
 const NovelFeatures = () => {
   const dispatch = useDispatch();
@@ -32,7 +34,6 @@ const NovelFeatures = () => {
   const isLatestApplicationLoading = useSelector(
     (state) => state.loading.isLatestApplicationLoading
   );
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [leftViewMode, setLeftViewMode] = useState("Table");
   const authUser = useSelector((state) => state.user.authUser);
   const [isExtraLargeScreen, setIsExtraLargeScreen] = useState(
@@ -40,7 +41,9 @@ const NovelFeatures = () => {
   );
   const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
   const activeDocketId = useSelector((state) => state.user.docketId);
+  const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false);
   const [rightViewMode, setRightViewMode] = useState("Suggested Amendment");
+  const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
   const activeApplicationId = useSelector((state) => state.user.applicationId);
 
   const currentApplicationRejections = useSelector(
@@ -50,6 +53,10 @@ const NovelFeatures = () => {
     currentApplicationRejections?.isNovelFeaturesLoading;
   const isNovelClaimsAmended =
     currentApplicationRejections?.isNovelFeaturesClaimsAmended;
+  const isNovelClaimsFinalized =
+    currentApplicationRejections?.isNovelFeaturesFinalized;
+  const isNovelAmendmentClaimsLoading =
+    currentApplicationRejections?.isNovelFeaturesAmendmentClaimsLoading;
 
   const patentData = [
     {
@@ -62,15 +69,105 @@ const NovelFeatures = () => {
     })) || []),
   ];
 
-  const handleOpenModal = () => setIsModalOpen(true);
-  const handleCloseModal = () => setIsModalOpen(false);
-  const handleConfirmation = () => {
+  const handleRegenerateOpenModal = () => setIsRegenerateModalOpen(true);
+  const handleRegenerateCloseModal = () => setIsRegenerateModalOpen(false);
+  const handleRegenerateConfirmation = () => {
+    dispatch(
+      setApplicationRejections({
+        rejectionId: activeDocketId,
+        name: "isNovelFeaturesFinalized",
+        value: false,
+      })
+    );
     analyseNovelFeatures(activeApplicationId, activeDocketId);
-    handleCloseModal();
+    handleRegenerateCloseModal();
+  };
+  const handleRegenerate = () => {
+    if (isNovelAmendmentClaimsLoading) {
+      return;
+    }
+    handleRegenerateOpenModal();
   };
 
-  const handleRegenerate = () => {
-    handleOpenModal();
+  const handleFinalizeOpenModal = () => setIsFinalizeModalOpen(true);
+  const handleFinalizeCloseModal = () => setIsFinalizeModalOpen(false);
+  const handleFinalizeConfirmation = async () => {
+    handleFinalizeCloseModal();
+    if (!docketData?.novelData?.amendedClaim || !isNovelClaimsAmended) {
+      return toast.error("Please amend the claims first");
+    } else if (isNovelClaimsFinalized) {
+      return;
+    }
+
+    try {
+      await post("/rejection/finalize", {
+        token: authUser.token,
+        rejectionId: docketData.rejectionId,
+        applicationId: activeApplicationId,
+        type: "novelFeatures",
+        amendedClaim: docketData.technicalData.amendedClaim,
+        comparisonTable: docketData.technicalData.comparisonTable,
+        amendmentStrategy: docketData.technicalData.amendmentStrategy,
+      });
+
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isTechnicalComparisonFinalized",
+          value: false,
+        })
+      );
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isNovelFeaturesFinalized",
+          value: true,
+        })
+      );
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isDependentClaimsFinalized",
+          value: false,
+        })
+      );
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isCompositeAmendmentFinalized",
+          value: false,
+        })
+      );
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name: "isOneFeaturesFinalized",
+          value: false,
+        })
+      );
+      dispatch(setFlag());
+      dispatch(
+        updateDocketData({
+          applicationId: activeApplicationId,
+          docketId: activeDocketId,
+          name: "finalizedType",
+          value: "novelFeatures",
+        })
+      );
+      toast.success("Amendment finalized successfully");
+    } catch (error) {
+      if (enviroment === "development") {
+        console.log(error);
+      }
+      toast.error("Failed to finalize amendment");
+    }
+  };
+  const handleFinalizeClick = async (e) => {
+    e.preventDefault();
+    if (isNovelClaimsFinalized) {
+      return;
+    }
+    handleFinalizeOpenModal();
   };
 
   const openFullScreen = () => setIsFullScreenOpen(true);
@@ -105,11 +202,30 @@ const NovelFeatures = () => {
     }
   };
 
-  const handleAmendClaimsClick = (e) => {
+  const handleAmendClaimsClick = async (e) => {
     e.preventDefault();
-    if (isNovelClaimsLoading || !docketData?.novelData?.amendedClaim) {
+    if (
+      isNovelClaimsLoading ||
+      !docketData?.novelData?.amendedClaim ||
+      isNovelAmendmentClaimsLoading
+    ) {
       return;
     }
+    dispatch(
+      setApplicationRejections({
+        rejectionId: activeDocketId,
+        name: "isNovelFeaturesAmendmentClaimsLoading",
+        value: true,
+      })
+    );
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    dispatch(
+      setApplicationRejections({
+        rejectionId: activeDocketId,
+        name: "isNovelFeaturesAmendmentClaimsLoading",
+        value: false,
+      })
+    );
     dispatch(
       setApplicationRejections({
         rejectionId: activeDocketId,
@@ -139,18 +255,31 @@ const NovelFeatures = () => {
           value: false,
         })
       );
-      // if (docketData.rejectionType === "102") {
-      //   response = await post("/tabs/102/novelfeatures", {
-      //     token: authUser.token,
-      //     data: docketData,
-      //   });
-      // }
+      if (docketData.rejectionType === "102") {
+        response = await post("/tabs/102/novelfeatures", {
+          token: authUser.token,
+          data: docketData,
+        });
+      } else if (docketData.rejectionType === "103") {
+        response = await post("/tabs/103/novelfeatures", {
+          token: authUser.token,
+          data: docketData,
+        });
+      }
       dispatch(
         updateDocketData({
           applicationId: applicationId,
           docketId: docketId,
           name: "novelData",
           value: response.data.data,
+        })
+      );
+      dispatch(
+        updateDocketData({
+          applicationId: applicationId,
+          docketId: docketId,
+          name: "showFinalizedType",
+          value: false,
         })
       );
     } catch (error) {
@@ -195,7 +324,8 @@ const NovelFeatures = () => {
       (docketData &&
         Object.keys(docketData).length &&
         docketData?.novelData &&
-        !Object.keys(docketData?.novelData).length) ||
+        !Object.keys(docketData?.novelData).length &&
+        !isNovelClaimsLoading) ||
       (docketData &&
         Object.keys(docketData).length &&
         docketData.novelData === undefined &&
@@ -204,6 +334,27 @@ const NovelFeatures = () => {
       analyseNovelFeatures(activeApplicationId, activeDocketId);
     }
   }, [docketData]);
+
+  useEffect(() => {
+    if (docketData.finalizedType && docketData.showFinalizedType) {
+      dispatch(
+        setApplicationRejections({
+          rejectionId: activeDocketId,
+          name:
+            docketData.finalizedType === "technicalComparison"
+              ? "isTechnicalComparisonFinalized"
+              : docketData.finalizedType === "novelFeatures"
+              ? "isNovelFeaturesFinalized"
+              : docketData.finalizedType === "dependentClaims"
+              ? "isDependentClaimsFinalized"
+              : docketData.finalizedType === "compositeAmendment"
+              ? "isCompositeAmendmentFinalized"
+              : "isOneFeaturesFinalized",
+          value: true,
+        })
+      );
+    }
+  }, [docketData.finalizedType, docketData.showFinalizedType]);
 
   useEffect(() => {
     if (activeDocketId && activeApplicationId) {
@@ -240,6 +391,7 @@ const NovelFeatures = () => {
               }
               onDownload={() => handleDownload("left")}
               onRegenerate={() => handleRegenerate()}
+              isClaimsLoading={isNovelAmendmentClaimsLoading}
               onFullScreen={
                 leftViewMode === "Table" &&
                 !isNovelClaimsLoading &&
@@ -261,14 +413,11 @@ const NovelFeatures = () => {
                   <table className="w-full border-collapse border border-gray-300 border-t-0 text-center">
                     <thead>
                       <tr className="border-b border-gray-300 bg-[#0284c7] sticky -top-3 z-10">
-                        <th className="py-2 px-4 w-1/3 text-md font-bold text-white max-[425px]:px-2 border-r border-gray-300">
+                        <th className="py-3 px-6 w-1/2 text-md font-bold text-white border-r border-gray-300">
                           Subject Application
                         </th>
-                        <th className="py-2 px-4 w-1/3 text-md font-bold text-white max-[425px]:px-2 border-r border-gray-300">
+                        <th className="py-3 px-6 w-1/2 text-md font-bold text-white">
                           Prior Art
-                        </th>
-                        <th className="py-2 px-4 w-1/3 text-md font-bold text-white max-[425px]:px-2">
-                          Differentiating Feature
                         </th>
                       </tr>
                     </thead>
@@ -281,14 +430,11 @@ const NovelFeatures = () => {
                               index % 2 === 0 ? "bg-gray-200" : "bg-white"
                             } hover:bg-gray-200/50`}
                           >
-                            <td className="py-2 px-4 text-sm font-semibold text-gray-800 max-[425px]:px-2 border-r border-gray-300 text-left align-top">
+                            <td className="py-3 px-6 text-sm font-medium text-gray-800 border-r border-gray-300 text-left align-top">
                               {comparison.subjectApplication}
                             </td>
-                            <td className="py-2 px-4 text-sm font-semibold text-gray-800 max-[425px]:px-2 border-r border-gray-300 text-left align-top">
+                            <td className="py-3 px-6 text-sm font-medium text-gray-800 text-left align-top">
                               <span>{comparison.priorArt}</span>
-                            </td>
-                            <td className="py-2 px-4 text-sm font-semibold text-gray-800 max-[425px]:px-2 text-left align-top">
-                              {comparison.differentiatingFeature}
                             </td>
                           </tr>
                         )
@@ -323,14 +469,18 @@ const NovelFeatures = () => {
             <div className="inline-block relative">
               <button
                 className={`h-10 w-10 rounded-full bg-[#3586cb] flex items-center justify-center shadow-sm cursor-pointer text-white tooltip-trigger ${
-                  isNovelClaimsLoading
+                  isNovelClaimsLoading || isNovelAmendmentClaimsLoading
                     ? ""
                     : isNovelClaimsAmended
                     ? ""
                     : "animate-pulse"
                 }`}
                 onClick={handleAmendClaimsClick}
-                disabled={isNovelClaimsLoading}
+                disabled={
+                  isNovelClaimsLoading ||
+                  isNovelClaimsAmended ||
+                  isNovelAmendmentClaimsLoading
+                }
               >
                 {isExtraLargeScreen ? <ChevronsRight /> : <ChevronsDown />}
               </button>
@@ -345,7 +495,9 @@ const NovelFeatures = () => {
                 before:border-4 before:border-transparent before:border-b-gray-800
               "
               >
-                Click to amend claims
+                {isNovelClaimsAmended
+                  ? "Claims amended"
+                  : "Click to amend claims"}
               </div>
             </div>
           </div>
@@ -361,10 +513,19 @@ const NovelFeatures = () => {
                 />
               }
               onDownload={() => handleDownload("right")}
-              onRegenerate={() => handleRegenerate()}
+              onFinalize={
+                isNovelClaimsAmended &&
+                !isNovelClaimsLoading &&
+                rightViewMode === "Suggested Amendment"
+                  ? handleFinalizeClick
+                  : null
+              }
+              isClaimsFinalized={isNovelClaimsFinalized}
             >
               <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto">
-                {!isNovelClaimsAmended || isNovelClaimsLoading ? (
+                {isNovelAmendmentClaimsLoading ? (
+                  <OrbitingRingsLoader />
+                ) : !isNovelClaimsAmended || isNovelClaimsLoading ? (
                   <div className="w-full h-full flex items-center justify-center">
                     <p className="text-gray-500">
                       {rightViewMode === "Suggested Amendment"
@@ -447,13 +608,26 @@ const NovelFeatures = () => {
         </div>
       </div>
       <ConfirmationModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onConfirm={handleConfirmation}
+        isOpen={isRegenerateModalOpen}
+        onClose={handleRegenerateCloseModal}
+        onConfirm={handleRegenerateConfirmation}
         title="Are you sure?"
         message="This will regenerate the novel features and amendment claims suggestion."
         confirmButtonText="Regenerate"
         cancelButtonText="Cancel"
+      />
+      <FinalizeConfirmationModal
+        isOpen={isFinalizeModalOpen}
+        onClose={handleFinalizeCloseModal}
+        onConfirm={handleFinalizeConfirmation}
+        // onViewDetails={handleViewCurrentDetails}
+        title="Replace Existing Amendment?"
+        message="Do you want to finalize this claim amendment for response generation?"
+        confirmButtonText="Replace"
+        cancelButtonText="Cancel"
+        currentFinalizedText="CURRENTLY FINALIZED"
+        sourceTabText='From "Technical Comparison" Tab'
+        warningNoteText="This will replace the existing finalized amendment"
       />
       <FullScreenTable
         isOpen={isFullScreenOpen}

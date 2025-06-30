@@ -43,6 +43,16 @@ const DocketsSection = ({ data, children }) => {
   const applicationDockets = useSelector((state) => state.applicationDockets);
   const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 1024);
 
+  const currentApplicationDocuments = useSelector(
+    (state) => state.user.applicationDocuments[data.applicationId]
+  );
+  const isClaimsUploading =
+    currentApplicationDocuments?.isSubjectClaimsUploading;
+  const isSubjectDescriptionFetching =
+    currentApplicationDocuments?.isSubjectDescriptionFetching;
+  const isPriorDescriptionFetching =
+    currentApplicationDocuments?.isPriorArtDescriptionFetching;
+
   const toggleShowTab = () => {
     dispatch(
       setShowApplication({
@@ -89,6 +99,11 @@ const DocketsSection = ({ data, children }) => {
                           : "bg-gradient-to-r from-[#eef7ff] to-[#f3fff3] border border-gray-300"
                       }`}
                       onClick={toggleShowDocketTab}
+                      disabled={
+                        isClaimsUploading ||
+                        isPriorDescriptionFetching ||
+                        isSubjectDescriptionFetching
+                      }
                     >
                       <span
                         className={`transition-transform duration-300 ease-in-out ${
