@@ -20,7 +20,6 @@ import {
   extractApplicationNumber,
   fetchPatentTextFromSerpAPI,
   backgroundProcessRejection,
-  saveToFile,
 } from "../libs/applicationRoutesHelpers.js";
 import { upload } from "../middlewares/multer.js";
 import OneFeature from "../models/OneFeatures.js";
@@ -29,10 +28,12 @@ import { getCLMCount } from "../libs/usptoService.js";
 import DependentClaim from "../models/DependentClaims.js";
 import { verifyToken } from "../middlewares/verifyToken.js";
 import ApplicationDetails from "../models/ApplicationDetails.js";
+import FinalizedAmendment from "../models/FinalizedAmendment.js";
 import CompositeAmendment from "../models/CompositeAmendments.js";
 import TechnicalComparison from "../models/TechnicalComparison.js";
 import ApplicationDocuments from "../models/ApplicationDocuments.js";
 import { getAllClaimsAsArray } from "../libs/rejectionRoutesHelper.js";
+import OtherRejectionResponse from "../models/OtherRejectionResponse.js";
 
 const router = express.Router();
 const enviroment = process.env.NODE_ENV;
@@ -766,7 +767,9 @@ router.post(
           NovelFeature.deleteMany(deleteCriteria),
           DependentClaim.deleteMany(deleteCriteria),
           CompositeAmendment.deleteMany(deleteCriteria),
+          FinalizedAmendment.deleteMany(deleteCriteria),
           TechnicalComparison.deleteMany(deleteCriteria),
+          OtherRejectionResponse.deleteMany(deleteCriteria),
         ]);
       }
 

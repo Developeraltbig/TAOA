@@ -13,6 +13,19 @@ const docketsSchema = new mongoose.Schema(
       required: true,
       ref: "User",
     },
+    finalizedType: {
+      type: String,
+      enum: [
+        "technicalComparison",
+        "novelFeatures",
+        "dependentClaims",
+        "compositeAmendment",
+        "oneFeatures",
+      ],
+    },
+    showFinalizedType: {
+      type: Boolean,
+    },
     rejectionId: {
       type: String,
       required: true,

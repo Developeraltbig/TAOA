@@ -28,7 +28,7 @@ export const extractAndParseAllJson = (text) => {
 export const generateResponse = async (prompt, applicationNumber) => {
   try {
     if (enviroment === "development") {
-      console.log(`Analysing Technical Comparison ${applicationNumber}`);
+      console.log(`Analysing ${applicationNumber}`);
     }
     const generationConfig = {
       temperature: 0.4,
@@ -49,7 +49,7 @@ export const generateResponse = async (prompt, applicationNumber) => {
       }
     );
     if (enviroment === "development") {
-      console.log(`Completed Technical Comparison ${applicationNumber}`);
+      console.log(`Completed ${applicationNumber}`);
     }
     return response.data.candidates[0].content.parts[0].text;
   } catch (error) {

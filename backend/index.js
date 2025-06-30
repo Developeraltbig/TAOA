@@ -5,10 +5,13 @@ import mongoose from "mongoose";
 import createHttpError from "http-errors";
 
 import authRoutes from "./routes/authRoutes.js";
+import draftRoutes from "./routes/draftRoutes.js";
 import docketRoutes from "./routes/docketsRoutes.js";
 import applicationRoutes from "./routes/applicationRoutes.js";
+import finalizationRoutes from "./routes/finalizationRoutes.js";
 import rejection102Routes from "./routes/rejection102Routes.js";
 import rejection103Routes from "./routes/rejection103Routes.js";
+import otherRejectionsRoutes from "./routes/otherRejectionsRoutes.js";
 import clearBlacklistedTokenScheduler from "./libs/clearBlacklistedTokenScheduler.js";
 
 dotenv.config();
@@ -22,10 +25,13 @@ app.get("/", (req, res, next) => {
 });
 
 app.use("/api/auth", authRoutes);
-app.use("/api/application", applicationRoutes);
+app.use("/api/draft", draftRoutes);
 app.use("/api/docket", docketRoutes);
 app.use("/api/tabs/102", rejection102Routes);
 app.use("/api/tabs/103", rejection103Routes);
+app.use("/api/rejection", finalizationRoutes);
+app.use("/api/application", applicationRoutes);
+app.use("/api/rejection/other", otherRejectionsRoutes);
 
 const PORT = process.env.PORT || 3000;
 const enviroment = process.env.NODE_ENV;

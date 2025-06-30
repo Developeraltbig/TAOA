@@ -170,17 +170,19 @@ export const verify103rejection = async (req, res, next) => {
 
     const subjectDescription =
       applicationDocuments.subjectPublicationDescription;
-    const priorArtNumber = data.priorArtReferences[0].citedPubNo;
+    const priorArtNumber = data.priorArtReferences.map(
+      (prior) => prior.citedPubNo
+    );
     const priorArtDescription = applicationDocuments.priorArtDescription.filter(
-      (prior) => prior.citedPubNo === priorArtNumber
-    )[0].citedDescription;
-    // const subjectClaims = getClaimTextByNumber(
-    //   applicationDocuments.subjectPublicationClaim,
-    //   data.rejectedClaims[0]
-    // );
+      (prior) => priorArtNumber.includes(prior.citedPubNo)
+    );
     const examinerReasoning = applicationExist.rejections.filter(
       (reject) => reject._id.toString() === data.rejectionId
     )[0].examinerReasoning;
+    let subjectClaims = getClaimWithFallback(
+      applicationDocuments.subjectPublicationClaim,
+      data.rejectedClaims[0]
+    );
     req.data = {
       subjectClaims,
       user: data.user,
