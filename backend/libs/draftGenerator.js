@@ -9,7 +9,6 @@ import {
   PageBreak,
   WidthType,
   BorderStyle,
-  HeadingLevel,
   AlignmentType,
 } from "docx";
 import dotenv from "dotenv";
@@ -17,271 +16,399 @@ import dotenv from "dotenv";
 dotenv.config();
 const enviroment = process.env.NODE_ENV;
 
+const createTextRun = (text, options = {}) => {
+  return new TextRun({
+    text,
+    font: "Arial",
+    ...options,
+  });
+};
+
 export const generateDraftDocument = async (draftData) => {
   const sections = [];
 
+  // Title Block
   sections.push(
     new Paragraph({
-      text: "RESPONSE TO OFFICE ACTION",
-      heading: HeadingLevel.TITLE,
+      children: [
+        createTextRun("RESPONSE TO OFFICE ACTION", {
+          bold: true,
+          size: 32,
+        }),
+      ],
       alignment: AlignmentType.CENTER,
       spacing: { after: 400 },
     }),
     new Paragraph({
       children: [
-        new TextRun({
-          text: `Application No.: ${draftData.applicationNumber}`,
-          bold: true,
-        }),
+        createTextRun(
+          `Application No.: ${draftData.applicationNumber || "N/A"}`,
+          {
+            bold: true,
+          }
+        ),
       ],
       alignment: AlignmentType.CENTER,
       spacing: { after: 200 },
     }),
     new Paragraph({
       children: [
-        new TextRun({
-          text: `Publication No.: ${draftData.publicationNumber}`,
-          bold: true,
-        }),
+        createTextRun(
+          `Publication No.: ${draftData.publicationNumber || "N/A"}`,
+          {
+            bold: true,
+          }
+        ),
       ],
       alignment: AlignmentType.CENTER,
       spacing: { after: 200 },
     }),
     new Paragraph({
-      children: [
-        new TextRun({
-          text: `Date: ${new Date().toLocaleDateString()}`,
-        }),
-      ],
+      children: [createTextRun(`Date: ${new Date().toLocaleDateString()}`)],
       alignment: AlignmentType.CENTER,
       spacing: { after: 600 },
     })
   );
 
+  // Summary
   sections.push(
     new Paragraph({
-      text: "Examiner:",
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 400, after: 200 },
-    }),
-    new Paragraph({
-      text: "Patent Examining Group:",
-      spacing: { after: 200 },
-    }),
-    new Paragraph({
-      text: "Art Unit:",
-      spacing: { after: 400 },
-    })
-  );
-
-  sections.push(
-    new Paragraph({
-      text: "SUMMARY OF REJECTIONS",
-      heading: HeadingLevel.HEADING_1,
+      children: [
+        createTextRun("SUMMARY OF REJECTIONS", {
+          bold: true,
+          size: 30,
+        }),
+      ],
       spacing: { before: 600, after: 400 },
     })
   );
 
-  draftData.rejections.forEach((rejection, index) => {
-    sections.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: `${index + 1}. ${
-              rejection.type
-            } Rejection - Claims ${rejection.claims.join(", ")}`,
-            bold: true,
-          }),
-        ],
-        spacing: { after: 200 },
-      })
-    );
-  });
+  if (Array.isArray(draftData.rejections)) {
+    draftData.rejections.forEach((rejection, index) => {
+      const claimsText =
+        Array.isArray(rejection.claims) && rejection.claims.length > 0
+          ? rejection.claims.join(", ")
+          : "N/A";
+
+      sections.push(
+        new Paragraph({
+          spacing: { after: 200 },
+          children: [
+            createTextRun(
+              `${index + 1}. ${String(
+                rejection.type || "Unknown"
+              )} Rejection - Claims ${claimsText}`,
+              {
+                bold: true,
+              }
+            ),
+          ],
+        })
+      );
+    });
+  }
 
   sections.push(
     new Paragraph({
-      text: "DETAILED RESPONSE TO REJECTIONS",
-      heading: HeadingLevel.HEADING_1,
+      children: [new PageBreak()],
+    })
+  );
+
+  sections.push(
+    new Paragraph({
+      children: [
+        createTextRun("DETAILED RESPONSE TO REJECTIONS", {
+          bold: true,
+          size: 30,
+        }),
+      ],
+      alignment: AlignmentType.CENTER,
       spacing: { before: 600, after: 400 },
     })
   );
 
-  for (const [index, rejection] of draftData.rejections.entries()) {
-    sections.push(new PageBreak());
+  if (Array.isArray(draftData.rejections)) {
+    for (const [index, rejection] of draftData.rejections.entries()) {
+      const claimsText =
+        Array.isArray(rejection.claims) && rejection.claims.length > 0
+          ? rejection.claims.join(", ")
+          : "N/A";
 
-    sections.push(
-      new Paragraph({
-        text: `${rejection.type} REJECTION`,
-        heading: HeadingLevel.HEADING_2,
-        spacing: { after: 300 },
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: `Claims Rejected: ${rejection.claims.join(", ")}`,
-            bold: true,
-          }),
-        ],
-        spacing: { after: 300 },
-      })
-    );
-
-    if (rejection.response) {
-      if (rejection.response.type !== "other") {
-        sections.push(
-          new Paragraph({
-            text: "Prior Art References:",
-            bold: true,
-            spacing: { before: 200, after: 200 },
-          })
-        );
-
-        if (
-          rejection.priorArtReferences &&
-          rejection.priorArtReferences.length
-        ) {
-          rejection?.priorArtReferences.forEach((ref) => {
-            sections.push(
-              new Paragraph({
-                text: `• ${ref.citedPubNo}`,
-                indent: { left: 400 },
-                spacing: { after: 100 },
-              })
-            );
-          });
-        }
-
-        sections.push(
-          new Paragraph({
-            text: getAmendmentTitle(rejection.response.type),
-            heading: HeadingLevel.HEADING_3,
-            spacing: { before: 400, after: 200 },
-          })
-        );
-
-        if (
-          rejection.response.comparisonTable &&
-          rejection.response.comparisonTable.length
-        ) {
-          sections.push(
-            createComparisonTable(rejection.response.comparisonTable)
-          );
-        }
-
-        if (rejection.response.amendedClaim) {
-          sections.push(
-            new Paragraph({
-              text: "Amended Claim:",
+      sections.push(
+        new Paragraph({
+          children: [
+            createTextRun(
+              `${index + 1}. ${String(rejection.type || "Unknown")} REJECTION`,
+              {
+                bold: true,
+                size: 28,
+              }
+            ),
+          ],
+          spacing: { after: 300 },
+        }),
+        new Paragraph({
+          spacing: { after: 300 },
+          children: [
+            createTextRun(`Claims Rejected: ${claimsText}`, {
               bold: true,
-              spacing: { before: 300, after: 200 },
             }),
+          ],
+        })
+      );
+
+      if (rejection.response) {
+        if (rejection.response.type !== "other") {
+          sections.push(
             new Paragraph({
-              text: rejection.response.amendedClaim.preamble,
-              spacing: { after: 200 },
+              spacing: { before: 200, after: 200 },
+              children: [
+                createTextRun("Prior Art References:", {
+                  bold: true,
+                }),
+              ],
             })
           );
 
           if (
-            rejection.response.amendedClaim.elements &&
-            rejection.response.amendedClaim.elements.length
+            Array.isArray(rejection.priorArtReferences) &&
+            rejection.priorArtReferences.length > 0
           ) {
-            rejection.response.amendedClaim.elements.forEach((element) => {
+            rejection.priorArtReferences.forEach((ref) => {
               sections.push(
                 new Paragraph({
-                  text: element.text,
+                  children: [
+                    createTextRun(
+                      `• ${String(ref?.citedPubNo || "Unknown Reference")}`
+                    ),
+                  ],
                   indent: { left: 400 },
                   spacing: { after: 100 },
                 })
               );
             });
-          }
-
-          if (
-            rejection.response.amendedClaim.additionalElements &&
-            rejection.response.amendedClaim.additionalElements.length
-          ) {
-            rejection.response.amendedClaim.additionalElements.forEach(
-              (element) => {
-                sections.push(
-                  new Paragraph({
-                    text: element.text,
-                    indent: { left: 400 },
-                    spacing: { after: 100 },
-                  })
-                );
-              }
+          } else {
+            sections.push(
+              new Paragraph({
+                children: [createTextRun("• No prior art references listed")],
+                indent: { left: 400 },
+                spacing: { after: 100 },
+              })
             );
           }
-        }
 
-        if (rejection.response.amendmentStrategy) {
           sections.push(
             new Paragraph({
-              text: "Amendment Strategy:",
-              bold: true,
-              spacing: { before: 300, after: 200 },
+              children: [
+                createTextRun(getAmendmentTitle(rejection.response.type), {
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+              keepNext: true,
+              keepLines: true,
+              spacing: { before: 400, after: 200 },
+            })
+          );
+
+          if (
+            Array.isArray(rejection.response.comparisonTable) &&
+            rejection.response.comparisonTable.length > 0
+          ) {
+            sections.push(
+              createComparisonTable(rejection.response.comparisonTable)
+            );
+          }
+
+          if (rejection.response.amendedClaim) {
+            sections.push(
+              new Paragraph({
+                spacing: { before: 300, after: 200 },
+                children: [
+                  createTextRun("Amended Claim:", {
+                    bold: true,
+                  }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  createTextRun(
+                    String(
+                      rejection.response.amendedClaim?.preamble ||
+                        "No preamble provided"
+                    )
+                  ),
+                ],
+                alignment: AlignmentType.JUSTIFIED,
+                spacing: { after: 200 },
+              })
+            );
+
+            if (Array.isArray(rejection.response.amendedClaim.elements)) {
+              rejection.response.amendedClaim.elements.forEach((element) => {
+                if (element && element.text) {
+                  sections.push(
+                    new Paragraph({
+                      children: [createTextRun(String(element.text))],
+                      alignment: AlignmentType.JUSTIFIED,
+                      indent: { left: 400 },
+                      spacing: { after: 100 },
+                    })
+                  );
+                }
+              });
+            }
+
+            if (
+              Array.isArray(rejection.response.amendedClaim.additionalElements)
+            ) {
+              rejection.response.amendedClaim.additionalElements.forEach(
+                (element) => {
+                  if (element && element.text) {
+                    sections.push(
+                      new Paragraph({
+                        children: [createTextRun(String(element.text))],
+                        alignment: AlignmentType.JUSTIFIED,
+                        indent: { left: 400 },
+                        spacing: { after: 100 },
+                      })
+                    );
+                  }
+                }
+              );
+            }
+          }
+
+          if (rejection.response.amendmentStrategy) {
+            sections.push(
+              new Paragraph({
+                spacing: { before: 300, after: 200 },
+                children: [
+                  createTextRun("Amendment Strategy:", {
+                    bold: true,
+                  }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  createTextRun(
+                    String(
+                      rejection.response.amendmentStrategy ||
+                        "No strategy provided"
+                    )
+                  ),
+                ],
+                alignment: AlignmentType.JUSTIFIED,
+                spacing: { after: 200 },
+              })
+            );
+          }
+        } else {
+          sections.push(
+            new Paragraph({
+              spacing: { before: 200, after: 200 },
+              children: [
+                createTextRun("Response:", {
+                  bold: true,
+                }),
+              ],
             }),
             new Paragraph({
-              text: rejection.response.amendmentStrategy,
-              spacing: { after: 200 },
+              children: [
+                createTextRun(
+                  String(
+                    rejection.response.userResponse || "No response provided"
+                  )
+                ),
+              ],
+              alignment: AlignmentType.JUSTIFIED,
+              spacing: { after: 300 },
             })
           );
         }
-      } else if (rejection.response.type === "other") {
-        sections.push(
-          new Paragraph({
-            text: "Response:",
-            bold: true,
-            spacing: { before: 200, after: 200 },
-          }),
-          new Paragraph({
-            text: rejection.response.userResponse,
-            spacing: { after: 300 },
-          })
-        );
       }
     }
   }
 
+  // Conclusion
   sections.push(
-    new PageBreak(),
     new Paragraph({
-      text: "CONCLUSION",
-      heading: HeadingLevel.HEADING_1,
+      children: [new PageBreak()],
+    }),
+    new Paragraph({
+      children: [
+        createTextRun("CONCLUSION", {
+          bold: true,
+          size: 30,
+        }),
+      ],
       spacing: { after: 400 },
     }),
     new Paragraph({
-      text: "In view of the foregoing amendments and remarks, Applicant respectfully submits that all pending claims are in condition for allowance. Favorable reconsideration and allowance of the application are earnestly solicited.",
+      children: [
+        createTextRun(
+          "In view of the foregoing amendments and remarks, Applicant respectfully submits that all pending claims are in condition for allowance. Favorable reconsideration and allowance of the application are earnestly solicited."
+        ),
+      ],
+      alignment: AlignmentType.JUSTIFIED,
       spacing: { after: 400 },
     }),
     new Paragraph({
-      text: "Respectfully submitted,",
+      children: [createTextRun("Respectfully submitted:")],
       spacing: { before: 600, after: 400 },
     }),
     new Paragraph({
-      text: "_____________________________",
+      children: [createTextRun("_____________________________")],
       spacing: { after: 100 },
     }),
     new Paragraph({
-      text: "Attorney Name",
+      children: [createTextRun("Attorney Name")],
       spacing: { after: 100 },
     }),
     new Paragraph({
-      text: "Registration No.",
+      children: [createTextRun("Registration No.")],
       spacing: { after: 100 },
     }),
     new Paragraph({
-      text: "Date: " + new Date().toLocaleDateString(),
+      children: [createTextRun(`Date: ${new Date().toLocaleDateString()}`)],
     })
   );
 
   const doc = new Document({
     sections: [
       {
-        properties: {},
+        properties: {
+          page: {
+            margin: {
+              top: 1440,
+              right: 1440,
+              bottom: 1440,
+              left: 1440,
+            },
+          },
+        },
         children: sections,
       },
     ],
+    styles: {
+      default: {
+        document: {
+          run: {
+            font: "Arial",
+          },
+        },
+      },
+      paragraphStyles: [
+        {
+          id: "Normal",
+          name: "Normal",
+          basedOn: "Normal",
+          run: {
+            font: "Arial",
+          },
+        },
+      ],
+    },
   });
 
   try {
@@ -289,9 +416,9 @@ export const generateDraftDocument = async (draftData) => {
     return buffer;
   } catch (error) {
     if (enviroment === "development") {
-      console.error("Error packing DOCX document:", error);
+      console.error("Error in generateDraftDocument:", error);
     }
-    throw new Error("Failed to pack DOCX document: " + error.message);
+    throw error;
   }
 };
 
@@ -307,60 +434,97 @@ const getAmendmentTitle = (type) => {
 };
 
 const createComparisonTable = (comparisonData) => {
+  const cellMargins = {
+    top: 100,
+    bottom: 100,
+    left: 100,
+    right: 100,
+  };
+
   const rows = [
     new TableRow({
+      cantSplit: true,
       children: [
         new TableCell({
           children: [
             new Paragraph({
-              text: "Subject Application",
-              bold: true,
               alignment: AlignmentType.CENTER,
+              children: [createTextRun("Subject Application", { bold: true })],
             }),
           ],
-          width: { size: 50, type: WidthType.PERCENTAGE },
+          width: { size: 33.33, type: WidthType.PERCENTAGE },
+          margins: cellMargins,
         }),
         new TableCell({
           children: [
             new Paragraph({
-              text: "Prior Art",
-              bold: true,
               alignment: AlignmentType.CENTER,
+              children: [createTextRun("Prior Art", { bold: true })],
             }),
           ],
-          width: { size: 50, type: WidthType.PERCENTAGE },
+          width: { size: 33.33, type: WidthType.PERCENTAGE },
+          margins: cellMargins,
         }),
         new TableCell({
           children: [
             new Paragraph({
-              text: "Differentiating Feature",
-              bold: true,
               alignment: AlignmentType.CENTER,
+              children: [
+                createTextRun("Differentiating Feature", { bold: true }),
+              ],
             }),
           ],
-          width: { size: 50, type: WidthType.PERCENTAGE },
+          width: { size: 33.34, type: WidthType.PERCENTAGE },
+          margins: cellMargins,
         }),
       ],
     }),
   ];
 
-  comparisonData.forEach((comparison) => {
-    rows.push(
-      new TableRow({
-        children: [
-          new TableCell({
-            children: [new Paragraph(comparison.subjectApplication)],
-          }),
-          new TableCell({
-            children: [new Paragraph(comparison.priorArt)],
-          }),
-          new TableCell({
-            children: [new Paragraph(comparison.differentiatingFeature)],
-          }),
-        ],
-      })
-    );
-  });
+  if (Array.isArray(comparisonData)) {
+    comparisonData.forEach((comparison) => {
+      if (comparison) {
+        rows.push(
+          new TableRow({
+            cantSplit: true,
+            children: [
+              new TableCell({
+                children: [
+                  new Paragraph({
+                    children: [
+                      createTextRun(comparison.subjectApplication || "N/A"),
+                    ],
+                  }),
+                ],
+                width: { size: 33.33, type: WidthType.PERCENTAGE },
+                margins: cellMargins,
+              }),
+              new TableCell({
+                children: [
+                  new Paragraph({
+                    children: [createTextRun(comparison.priorArt || "N/A")],
+                  }),
+                ],
+                width: { size: 33.33, type: WidthType.PERCENTAGE },
+                margins: cellMargins,
+              }),
+              new TableCell({
+                children: [
+                  new Paragraph({
+                    children: [
+                      createTextRun(comparison.differentiatingFeature || "N/A"),
+                    ],
+                  }),
+                ],
+                width: { size: 33.34, type: WidthType.PERCENTAGE },
+                margins: cellMargins,
+              }),
+            ],
+          })
+        );
+      }
+    });
+  }
 
   return new Table({
     rows,
