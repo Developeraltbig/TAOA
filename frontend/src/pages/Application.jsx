@@ -30,6 +30,10 @@ import {
 } from "../store/slices/authUserSlice";
 import { toast } from "react-toastify";
 import { post } from "../services/ApiEndpoint";
+import {
+  clearShowState,
+  clearDocketState,
+} from "../store/slices/applicationDocketsSlice";
 import { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -39,10 +43,6 @@ import ConfirmationModal from "../components/ConfirmationModal";
 import DraftPreviewModal from "../components/DraftPreviewModal";
 import OtherRejectionsModal from "../components/OtherRejectionsModal";
 import { setIsClaimStatusModalOpen } from "../store/slices/modalsSlice";
-import {
-  clearShowState,
-  clearDocketState,
-} from "../store/slices/applicationDocketsSlice";
 import { setLatestApplication } from "../store/slices/latestApplicationsSlice";
 import ApplicationAnalyseSkeleton from "../skeletons/ApplicationAnalyseSkeleton";
 
@@ -698,7 +698,7 @@ const Application = () => {
           applicationNumber: data.applicationNumber,
         },
         {
-          responseType: "arraybuffer",
+          responseType: "blob",
           headers: {
             Accept:
               "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -706,23 +706,27 @@ const Application = () => {
         }
       );
 
-      const blob = new Blob([response.data], {
-        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      });
-      const url = window.URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(response.data);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Draft_Response_${data.applicationNumber}.docx`;
+      a.setAttribute(
+        "download",
+        `Draft_Response_${data.applicationNumber}.docx`
+      );
       document.body.appendChild(a);
+      a.addEventListener("click", () => {
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        }, 100);
+      });
       a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
       toast.success("Draft response generated successfully");
     } catch (error) {
       if (enviroment === "development") {
         console.log(error);
       }
-      if (error.status === 401 || error.status === 404) {
+      if (error.response?.status === 401 || error.response?.status === 404) {
         dispatch(clearDocketState());
         dispatch(clearUserSlice());
       } else {

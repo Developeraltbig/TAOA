@@ -1,3 +1,4 @@
+import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import { useEffect, useState } from "react";
 import { post } from "../services/ApiEndpoint";
@@ -219,12 +220,11 @@ const DraftPreviewModal = ({ isOpen, onClose, applicationId, onGenerate }) => {
               onClose();
               onGenerate();
             }}
-            disabled={true || !previewData?.readyForGeneration}
+            disabled={!previewData?.readyForGeneration}
             className="px-6 py-2.5 bg-[#3586cb] hover:bg-[#2b6faa] text-white rounded-lg cursor-pointer font-medium transition-colors duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download size={18} />
-            {/* <span>Generate Document</span> */}
-            <span>Coming Soon</span>
+            <span>Generate Document</span>
           </button>
         </div>
       </section>
