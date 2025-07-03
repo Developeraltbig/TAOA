@@ -9,6 +9,7 @@ import {
   CloudUpload,
   CheckCircle2,
   ExternalLink,
+  Eye,
 } from "lucide-react";
 import axios from "axios";
 import {
@@ -39,6 +40,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Navigate, useNavigate } from "react-router-dom";
 import ReasoningSection from "../components/ReasoningSection";
 import ClaimStatusModal from "../components/ClaimStatusModal";
+import LatestClaimsModal from "../components/LatestClaimModal";
 import ConfirmationModal from "../components/ConfirmationModal";
 import DraftPreviewModal from "../components/DraftPreviewModal";
 import OtherRejectionsModal from "../components/OtherRejectionsModal";
@@ -89,6 +91,7 @@ const Application = () => {
   const latestApplications = useSelector(
     (state) => state.applications.latestApplication
   );
+  const [latestClaim, setLatestClaim] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
   const isLatestApplicationLoading = useSelector(
@@ -97,6 +100,8 @@ const Application = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const draftState = useSelector((state) => state.draft);
   const [showDraftPreview, setShowDraftPreview] = useState(false);
+  const [isLatestClaimFailed, setIsLatestClaimFailed] = useState(false);
+  const [isLatestClaimLoading, setIsLatestClaimLoading] = useState(false);
   const activeApplicationId = useSelector((state) => state.user.applicationId);
 
   const finalizationStatus = draftState.finalizationStatus[activeApplicationId];
@@ -138,6 +143,10 @@ const Application = () => {
     setNewFile(null);
     fileInputRef.current.value = "";
   };
+
+  const [isLatestClaimsModalOpen, setIsLatestClaimsModalOpen] = useState(false);
+  const handleOpenLatestClaimsModal = () => setIsLatestClaimsModalOpen(true);
+  const handleCloseLatestClaimsModal = () => setIsLatestClaimsModalOpen(false);
 
   const handleConfirmation = async () => {
     const formData = new FormData();
@@ -691,7 +700,7 @@ const Application = () => {
     try {
       dispatch(setIsGenerating(true));
       const response = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/draft/generate`,
+        `${import.meta.env.VITE_BACKEND_URL || "/api"}/draft/generate`,
         {
           token: authUser.token,
           applicationId: activeApplicationId,
@@ -746,6 +755,50 @@ const Application = () => {
     setShowDraftPreview(true);
   };
 
+  const handleScrollToRejection = (index) => {
+    const element = document.getElementById(`rejection-${index}`);
+    if (element) {
+      const yOffset = -80;
+      const y =
+        element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
+  };
+
+  const fetchLatestClaims = async () => {
+    try {
+      setIsLatestClaimLoading(true);
+      setIsLatestClaimFailed(false);
+      const response = await post("/application/fetchLatestClaim", {
+        token: authUser.token,
+        applicationId: activeApplicationId,
+      });
+      setLatestClaim(response.data.data);
+    } catch (error) {
+      if (enviroment === "development") {
+        console.log(error);
+      }
+      if (error.response?.status === 401 || error.response?.status === 404) {
+        dispatch(clearDocketState());
+        dispatch(clearUserSlice());
+      } else {
+        const message = error?.response?.data?.message;
+        toast.error(message);
+      }
+      setIsLatestClaimFailed(true);
+    } finally {
+      setIsLatestClaimLoading(false);
+    }
+  };
+
+  const handleViewDocumentClick = (e) => {
+    e.preventDefault();
+    if (isLatestClaimFailed || isLatestClaimLoading) {
+      return;
+    }
+    handleOpenLatestClaimsModal();
+  };
+
   useEffect(() => {
     if (data && data.applicationId === activeApplicationId) {
       checkFinalizationStatus();
@@ -775,6 +828,12 @@ const Application = () => {
       fetchApplication();
     }
   }, [latestApplications, activeApplicationId]);
+
+  useEffect(() => {
+    if (data.isSubjectClaimsExists) {
+      fetchLatestClaims();
+    }
+  }, [data, data.isSubjectClaimsExists]);
 
   if ((!isLatestApplicationLoading && data === null) || !activeApplicationId) {
     return <Navigate to="/dashboard" />;
@@ -921,6 +980,21 @@ const Application = () => {
                                 : "Fetching from USPTO"}
                             </p>
                           </div>
+                          {(claimsUploaded || data.isSubjectClaimsExists) && (
+                            <button
+                              className="action-btn change-btn"
+                              style={{
+                                cursor: isLatestClaimLoading
+                                  ? "progress"
+                                  : "pointer",
+                              }}
+                              onClick={handleViewDocumentClick}
+                              disabled={isLatestClaimFailed}
+                              title="View document"
+                            >
+                              <Eye />
+                            </button>
+                          )}
                           {claimsUploadFailed && (
                             <button
                               className="action-btn retry-btn"
@@ -1166,13 +1240,28 @@ const Application = () => {
                             {isClaimsUploading ? (
                               <></>
                             ) : claimsUploaded || data.isSubjectClaimsExists ? (
-                              <button
-                                className="action-btn change-btn"
-                                onClick={(e) => setIsCollapsed(false)}
-                                title="Change document"
-                              >
-                                <FilePen />
-                              </button>
+                              <>
+                                <button
+                                  className="action-btn change-btn"
+                                  style={{
+                                    cursor: isLatestClaimLoading
+                                      ? "progress"
+                                      : "pointer",
+                                  }}
+                                  onClick={handleViewDocumentClick}
+                                  disabled={isLatestClaimFailed}
+                                  title="View document"
+                                >
+                                  <Eye size={44} />
+                                </button>
+                                <button
+                                  className="action-btn change-btn"
+                                  onClick={(e) => setIsCollapsed(false)}
+                                  title="Change document"
+                                >
+                                  <FilePen />
+                                </button>
+                              </>
                             ) : (
                               (claimsUploadFailed ||
                                 data.isSubjectClaimsExists) && (
@@ -1325,6 +1414,7 @@ const Application = () => {
                 return (
                   <section
                     key={idx}
+                    id={`rejection-${idx}`}
                     className="bg-gradient-to-l from-[#e6eefa] to-[#f0faf4] rounded-xl px-6 py-6 sm:px-8 sm:py-8 h-fit shadow-lg flex flex-col gap-6 max-[425px]:px-2 max-[375px]:px-1"
                   >
                     <h2 id="law-heading" className="font-[500] text-[1.25rem]">
@@ -1505,23 +1595,24 @@ const Application = () => {
                     const status =
                       finalizationStatus?.rejections[rejection._id];
                     return (
-                      <div
+                      <button
                         key={idx}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs hover:text-sm font-medium cursor-pointer transform transition-all duration-100 ease-in-out hover:shadow-lg ${
                           status?.isFinalized
-                            ? "bg-green-600 text-white"
-                            : "bg-gray-300 text-gray-600"
+                            ? "bg-green-600 text-white hover:bg-green-700 hover:scale-110"
+                            : "bg-gray-300 text-gray-600 hover:bg-gray-400 hover:text-gray-800 hover:scale-110"
                         }`}
-                        title={`${rejection.rejectionType} - ${
+                        title={`${rejection.rejectionType.split(",")[0]} - ${
                           status?.isFinalized ? "Finalized" : "Pending"
                         }`}
+                        onClick={() => handleScrollToRejection(idx)}
                       >
                         {status?.isFinalized ? (
                           <CheckCircle2 size={16} />
                         ) : (
                           idx + 1
                         )}
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -1588,6 +1679,11 @@ const Application = () => {
         onClose={() => setShowDraftPreview(false)}
         applicationId={activeApplicationId}
         onGenerate={handleGenerateDraft}
+      />
+      <LatestClaimsModal
+        isOpen={isLatestClaimsModalOpen}
+        onClose={handleCloseLatestClaimsModal}
+        claims={latestClaim}
       />
     </>
   );

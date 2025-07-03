@@ -13,6 +13,8 @@ const FinalizeConfirmationModal = ({
   cancelButtonText,
   confirmButtonText,
   currentFinalizedText,
+  isAmendedClaimFailed,
+  isAmendedClaimLoading,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
@@ -82,7 +84,13 @@ const FinalizeConfirmationModal = ({
               </div>
               <button
                 onClick={onViewDetails}
-                className="p-2 hover:bg-white rounded-lg transition-colors duration-200 group"
+                className={`p-2 hover:bg-white rounded-lg transition-colors duration-200 group ${
+                  isAmendedClaimFailed
+                    ? "cursor-not-allowed"
+                    : isAmendedClaimLoading
+                    ? "cursor-progress"
+                    : "cursor-pointer"
+                }`}
                 title="View Amendment"
               >
                 <i className="fas fa-eye text-gray-500 group-hover:text-[#3586cb]"></i>{" "}
@@ -94,11 +102,13 @@ const FinalizeConfirmationModal = ({
         <p className="text-gray-600 text-center text-sm leading-relaxed mb-6">
           {message}
         </p>{" "}
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6 w-full">
-          <p className="text-xs text-amber-800 text-center">
-            <i className="fas fa-info-circle mr-1"></i> {warningNoteText}
-          </p>
-        </div>
+        {warningNoteText && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6 w-full">
+            <p className="text-xs text-amber-800 text-center">
+              <i className="fas fa-info-circle mr-1"></i> {warningNoteText}
+            </p>
+          </div>
+        )}
         <div className="flex gap-3 w-full">
           {" "}
           <button

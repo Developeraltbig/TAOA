@@ -16,6 +16,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { ChevronsRight, ChevronsDown } from "lucide-react";
 import FullScreenTable from "../components/FullScreenTable";
 import { formatTextByDelimiter } from "../helpers/formatText";
+import { getAmendmentTitle } from "../helpers/amendmentTitle";
+import AmendedClaimModal from "../components/AmendedClaimModal";
 import ConfirmationModal from "../components/ConfirmationModal";
 import OrbitingRingsLoader from "../loaders/OrbitingRingsLoader";
 import DocketsContentPanel from "../components/DocketsContentPanel";
@@ -34,14 +36,18 @@ const OneFeatures = () => {
   const isLatestApplicationLoading = useSelector(
     (state) => state.loading.isLatestApplicationLoading
   );
+  const [amendedClaim, setAmendedClaim] = useState({});
   const [leftViewMode, setLeftViewMode] = useState("Table");
   const authUser = useSelector((state) => state.user.authUser);
   const [isExtraLargeScreen, setIsExtraLargeScreen] = useState(
     window.innerWidth >= 1280
   );
+  const [showAmendedModal, setShowAmendedModal] = useState(false);
   const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
   const activeDocketId = useSelector((state) => state.user.docketId);
   const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false);
+  const [isAmendedClaimFailed, setIsAmendedClaimFailed] = useState(false);
+  const [isAmendedClaimLoading, setIsAmendedClaimLoading] = useState(false);
   const [rightViewMode, setRightViewMode] = useState("Suggested Amendment");
   const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
   const activeApplicationId = useSelector((state) => state.user.applicationId);
@@ -108,9 +114,9 @@ const OneFeatures = () => {
         rejectionId: docketData.rejectionId,
         applicationId: activeApplicationId,
         type: "oneFeatures",
-        amendedClaim: docketData.technicalData.amendedClaim,
-        comparisonTable: docketData.technicalData.comparisonTable,
-        amendmentStrategy: docketData.technicalData.amendmentStrategy,
+        amendedClaim: docketData.oneFeaturesData.amendedClaim,
+        comparisonTable: docketData.oneFeaturesData.comparisonTable,
+        amendmentStrategy: docketData.oneFeaturesData.amendmentStrategy,
       });
 
       dispatch(
@@ -162,7 +168,12 @@ const OneFeatures = () => {
       if (enviroment === "development") {
         console.log(error);
       }
-      toast.error("Failed to finalize amendment");
+      if (error.status === 401 || error.status === 404) {
+        dispatch(clearShowState());
+        dispatch(clearUserSlice());
+      } else {
+        toast.error("Failed to finalize amendment");
+      }
     }
   };
   const handleFinalizeClick = async (e) => {
@@ -175,6 +186,9 @@ const OneFeatures = () => {
 
   const openFullScreen = () => setIsFullScreenOpen(true);
   const closeFullScreen = () => setIsFullScreenOpen(false);
+
+  const handleAmendedClaimOpenModal = () => setShowAmendedModal(true);
+  const handleAmendedClaimCloseModal = () => setShowAmendedModal(false);
 
   const fetchDocketData = () => {
     if (
@@ -312,6 +326,39 @@ const OneFeatures = () => {
     console.log(`Download clicked for ${panel}`);
   };
 
+  const fetchAmendedClaim = async () => {
+    try {
+      setIsAmendedClaimLoading(true);
+      setIsAmendedClaimFailed(false);
+      const response = await post("/application/fetchLatestAmendedClaim", {
+        token: authUser.token,
+        applicationId: activeApplicationId,
+        rejectionId: docketData.rejectionId,
+      });
+      setAmendedClaim(response.data.data);
+    } catch (error) {
+      if (enviroment === "development") {
+        console.log(error);
+      }
+      if (error.response?.status === 401 || error.response?.status === 404) {
+        dispatch(clearDocketState());
+        dispatch(clearUserSlice());
+      } else {
+        toast.error("Failed to fetch amended claim");
+      }
+      setIsAmendedClaimFailed(true);
+    } finally {
+      setIsAmendedClaimLoading(false);
+    }
+  };
+
+  const handleViewCurrentDetails = () => {
+    if (isAmendedClaimFailed || isAmendedClaimLoading) {
+      return;
+    }
+    handleAmendedClaimOpenModal();
+  };
+
   useEffect(() => {
     const handleResize = () => {
       setIsExtraLargeScreen(window.innerWidth >= 1280);
@@ -334,6 +381,12 @@ const OneFeatures = () => {
         !isOneFeaturesClaimsLoading)
     ) {
       analyseOneFeatures(activeApplicationId, activeDocketId);
+    }
+  }, [docketData]);
+
+  useEffect(() => {
+    if (docketData && docketData.finalizedType) {
+      fetchAmendedClaim();
     }
   }, [docketData]);
 
@@ -624,20 +677,53 @@ const OneFeatures = () => {
         isOpen={isFinalizeModalOpen}
         onClose={handleFinalizeCloseModal}
         onConfirm={handleFinalizeConfirmation}
-        // onViewDetails={handleViewCurrentDetails}
-        title="Replace Existing Amendment?"
+        onViewDetails={
+          docketData &&
+          docketData.finalizedType &&
+          Object.keys(amendedClaim).length
+            ? handleViewCurrentDetails
+            : null
+        }
+        title={
+          docketData && docketData.finalizedType
+            ? "Replace Existing Amendment?"
+            : "Finalize Amendment?"
+        }
         message="Do you want to finalize this claim amendment for response generation?"
-        confirmButtonText="Replace"
+        confirmButtonText={
+          docketData && docketData.finalizedType ? "Replace" : "Finalize"
+        }
         cancelButtonText="Cancel"
         currentFinalizedText="CURRENTLY FINALIZED"
-        sourceTabText='From "Technical Comparison" Tab'
-        warningNoteText="This will replace the existing finalized amendment"
+        sourceTabText={
+          docketData && docketData.finalizedType
+            ? getAmendmentTitle(docketData.finalizedType)
+            : ""
+        }
+        warningNoteText={
+          docketData && docketData.finalizedType
+            ? "This will replace the existing finalized amendment"
+            : ""
+        }
+        isAmendedClaimFailed={isAmendedClaimFailed}
+        isAmendedClaimLoading={isAmendedClaimLoading}
       />
       <FullScreenTable
         isOpen={isFullScreenOpen}
         onClose={closeFullScreen}
         tableData={docketData?.oneFeaturesData?.comparisonTable}
         tableHeading="One Features Table"
+      />
+      <AmendedClaimModal
+        isOpen={showAmendedModal}
+        onClose={handleAmendedClaimCloseModal}
+        heading={
+          docketData && docketData.finalizedType
+            ? getAmendmentTitle(docketData.finalizedType)
+            : ""
+        }
+        amendedClaim={amendedClaim?.amendedClaim}
+        amendmentStrategy={amendedClaim?.amendmentStrategy}
       />
     </>
   );

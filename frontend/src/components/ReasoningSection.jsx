@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { formatTextByDelimiter } from "../helpers/formatText";
 
 const ReasoningSection = ({ examinerReasoning }) => {
   const textRef = useRef(null);
