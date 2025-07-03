@@ -773,6 +773,28 @@ router.post(
         ]);
       }
 
+      await ApplicationDetails.findOneAndUpdate(
+        {
+          applicationId,
+          user: user.userId,
+        },
+        {
+          $set: {
+            "rejections.$[rej].analyseRejection": true,
+            isSubjectClaimsExists: true,
+          },
+        },
+        {
+          new: true,
+          arrayFilters: [
+            {
+              "rej.rejectionType": { $regex: "102|103" },
+              "rej.claimsRejected": { $elemMatch: { $in: independentClaims } },
+            },
+          ],
+        }
+      );
+
       const updatedApplication = await ApplicationDetails.findOneAndUpdate(
         {
           applicationId,
@@ -781,13 +803,13 @@ router.post(
         {
           $set: {
             "rejections.$[rej].analyseRejection": false,
-            isSubjectClaimsExists: true,
           },
         },
         {
           new: true,
           arrayFilters: [
             {
+              "rej.rejectionType": { $regex: "102|103" },
               "rej.claimsRejected": {
                 $not: { $elemMatch: { $in: independentClaims } },
               },
@@ -1270,5 +1292,75 @@ router.post(
     }
   }
 );
+
+router.post("/fetchLatestClaim", verifyToken, async (req, res, next) => {
+  try {
+    const user = req.user;
+    const { applicationId } = req.body;
+
+    if (!applicationId) {
+      return res.status(400).json({
+        status: "error",
+        message: "All fields are required",
+      });
+    }
+
+    const checkApplicationExists = await ApplicationDocuments.findOne({
+      applicationId,
+      user: user.userId,
+    });
+    if (!checkApplicationExists) {
+      return res.status(400).json({
+        status: "error",
+        message: "Application or latest claim doesn't exist",
+      });
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: `Successfully fetched latest claim`,
+      data: checkApplicationExists.subjectPublicationClaim,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/fetchLatestAmendedClaim", verifyToken, async (req, res, next) => {
+  try {
+    const user = req.user;
+    const { applicationId, rejectionId } = req.body;
+
+    if (!applicationId || !rejectionId) {
+      return res.status(400).json({
+        status: "error",
+        message: "All fields are required",
+      });
+    }
+
+    const checkApplicationExists = await FinalizedAmendment.findOne({
+      applicationId,
+      rejectionId,
+      user: user.userId,
+    });
+    if (!checkApplicationExists) {
+      return res.status(400).json({
+        status: "error",
+        message: "Application or latest amended claim doesn't exist",
+      });
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: `Successfully fetched latest amended claim`,
+      data: {
+        amendedClaim: checkApplicationExists.amendedClaim,
+        amendmentStrategy: checkApplicationExists.amendmentStrategy,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router;
