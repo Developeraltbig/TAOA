@@ -14,10 +14,29 @@ import {
   clearDocketState,
 } from "../store/slices/applicationDocketsSlice";
 import { useDispatch, useSelector } from "react-redux";
+import { handleDownload } from "../helpers/downloadFile";
 import OrbitingRingsLoader from "../loaders/OrbitingRingsLoader";
 import DocketsContentPanel from "../components/DocketsContentPanel";
 import DocketsHeaderSection from "../components/DocketsHeaderSection";
 import DocketsToggleButtons from "../components/DocketsToggleButtons";
+
+const getPanel = (chatHistory) => {
+  return chatHistory[0]?.text.includes("basis") ? "right" : "left";
+};
+
+const getKey = (chatHistory) => {
+  if (chatHistory[0].text.includes("Technical Comparison")) {
+    return "technicalData";
+  } else if (chatHistory[0].text.includes("Novel Features")) {
+    return "novelData";
+  } else if (chatHistory[0].text.includes("Dependent Claims")) {
+    return "dependentData";
+  } else if (chatHistory[0].text.includes("Composite Amendments")) {
+    return "compositeData";
+  } else if (chatHistory[0].text.includes("One Features")) {
+    return "oneFeaturesData";
+  }
+};
 
 const UserInteraction = () => {
   const dispatch = useDispatch();
@@ -622,10 +641,6 @@ const UserInteraction = () => {
     }
   };
 
-  const handleDownload = (panel) => {
-    console.log(`Download clicked for ${panel}`);
-  };
-
   useEffect(() => {
     if (activeDocketId && activeApplicationId) {
       fetchDocketData();
@@ -650,7 +665,7 @@ const UserInteraction = () => {
   }
 
   return (
-    <div className="min-h-full px-4 sm:px-8 md:px-12 lg:px-16 pt-16 pb-18">
+    <div className="min-h-full px-4 sm:px-8 md:px-12 lg:px-16 py-18 bg-gray-50">
       <DocketsHeaderSection
         title="Interact With Subject Application And Cited Arts"
         subtitle="Formulate targeted questions to gain a deeper understanding of the subject application and the cited prior arts."
@@ -677,9 +692,19 @@ const UserInteraction = () => {
                 onSelectionChange={setLeftViewMode}
               />
             }
-            onDownload={() => handleDownload("left")}
+            onDownload={
+              !responseData || isLoading
+                ? null
+                : () =>
+                    handleDownload(
+                      activeApplicationId,
+                      docketData,
+                      getKey(chatHistory),
+                      getPanel(chatHistory)
+                    )
+            }
           >
-            <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto overflow-x-hidden relative">
+            <div className="h-full bg-white rounded border border-gray-200 py-3 px-5 overflow-y-auto overflow-x-hidden relative">
               {isLoading ? (
                 <OrbitingRingsLoader />
               ) : !responseData ? (
@@ -772,7 +797,7 @@ const UserInteraction = () => {
         {/* Right Panel - Chat Interface */}
         <div className="h-[600px] xl:w-[calc(50%-20px)]">
           <DocketsContentPanel title="AI Assistant">
-            <div className="h-full flex flex-col bg-gray-50 rounded border border-gray-200">
+            <div className="h-full flex flex-col bg-white rounded border border-gray-200">
               {/* Chat Messages Area */}
               <div className="max-h-[250px] p-4 space-y-4">
                 {chatHistory.length === 0 ? (

@@ -1,17 +1,25 @@
 const LatestApplicationSkeleton = () => {
   const skeleton = Array(3).fill(null);
+
   return (
-    <aside className="space-y-3">
+    <div className="space-y-3" role="status" aria-label="Loading projects">
       {skeleton.map((_, idx) => (
         <div
           key={idx}
-          className="py-2 px-4 w-full rounded-lg flex items-center gap-2 bg-gradient-to-r from-[#f3fff3] to-[#eef7ff] font-bold border border-gray-300"
+          className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm animate-pulse"
         >
-          <div className="size-6 rounded-full bg-gray-200 animate-pulse"></div>
-          <div className="h-5 w-4/5 rounded bg-gray-200 animate-pulse"></div>
+          {/* Project Header Skeleton */}
+          <div className="p-4 flex items-center gap-3">
+            <div className="w-5 h-5 bg-gray-200 rounded"></div>
+            <div className="w-5 h-5 bg-gray-200 rounded"></div>
+            <div className="flex-1">
+              <div className="h-5 w-32 bg-gray-200 rounded"></div>
+            </div>
+          </div>
         </div>
       ))}
-    </aside>
+      <span className="sr-only">Loading...</span>
+    </div>
   );
 };
 

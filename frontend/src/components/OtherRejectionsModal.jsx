@@ -159,6 +159,7 @@ const OtherRejectionsModal = ({
     } finally {
       setIsFetching(false);
       setIsFetched(true);
+      dispatch(setFlag());
     }
   };
 
@@ -212,6 +213,7 @@ const OtherRejectionsModal = ({
     } finally {
       setIsFinalising(false);
       dispatch(setFlag());
+      onClose();
     }
   };
 

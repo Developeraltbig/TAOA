@@ -105,7 +105,7 @@ const Navbar = () => {
   }, [isMobileMenuVisible, isProfileMenuOpen]);
 
   return (
-    <nav className="bg-white shadow-md fixed top-0 z-50 w-full">
+    <nav className="bg-white shadow-sm fixed top-0 z-50 w-full">
       <div className="mx-auto px-2 sm:px-6 lg:px-8">
         <div className="relative flex h-16 items-center justify-between">
           {!authUser && (

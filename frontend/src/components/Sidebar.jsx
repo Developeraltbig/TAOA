@@ -14,9 +14,12 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import { setIsSidebarMenuVisible } from "../store/slices/modalsSlice";
+import { Clock, HelpCircle, Menu, X, Plus, FolderOpen } from "lucide-react";
 import { setIsLatestApplicationLoading } from "../store/slices/loadingSlice";
 import { setLatestApplication } from "../store/slices/latestApplicationsSlice";
 import LatestApplicationSkeleton from "../skeletons/LatestApplicationSkeleton";
+
+import "../styles/sidebar.css";
 
 const Sidebar = () => {
   const location = useLocation();
@@ -145,38 +148,38 @@ const Sidebar = () => {
     <>
       {/* Open Sidebar Button */}
       {!isSidebarMenuVisible && (
-        <div className="inline-block absolute top-3 left-5 z-40">
-          <button
-            className="text-xl px-3 py-[6px] bg-white shadow-md rounded-md z-50 cursor-pointer tooltip-trigger"
-            onClick={handleSidebarMenuToggle}
-            aria-expanded={isSidebarMenuVisible}
-            aria-controls="sidebar"
-          >
-            <i className="fa-solid fa-indent"></i>
-          </button>
+        <button
+          className="fixed left-4 top-4 z-48 bg-white shadow-lg cursor-pointer rounded-xl p-2 hover:shadow-xl transition-all duration-200 group border border-gray-100 sidebar-toggle-btn"
+          onClick={handleSidebarMenuToggle}
+          aria-expanded={isSidebarMenuVisible}
+          aria-controls="sidebar"
+          aria-label="Open Sidebar"
+        >
+          <Menu className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors" />
           <div
             className="
-              absolute left-full ml-2 top-1/2 transform -translate-y-1/2
-              opacity-0 tooltip-content
-              transition-opacity duration-300
-              bg-gray-800 text-white text-sm rounded-lg px-3 py-2
-              whitespace-nowrap z-50
-              before:content-[''] before:absolute before:top-1/2 before:-left-2 before:transform before:-translate-y-1/2
-              before:border-4 before:border-transparent before:border-r-gray-800
-            "
+        absolute left-full ml-2 top-1/2 transform -translate-y-1/2
+        sidebar-toggle-hint
+        bg-gray-800 text-white text-sm rounded-lg px-3 py-2
+        whitespace-nowrap z-50
+        before:content-[''] before:absolute before:top-1/2 before:-left-2 before:transform before:-translate-y-1/2
+        before:border-4 before:border-transparent before:border-r-gray-800
+      "
           >
             Open Sidebar
           </div>
-        </div>
+        </button>
       )}
 
       {/* Sidebar */}
       {isSidebarMenuRendering && (
-        <div
+        <aside
           id="sidebar"
+          role="navigation"
+          aria-label="Main navigation"
           className={`
-            fixed left-0 h-full w-70 bg-slate-50 shadow-md px-6 pt-2 pb-3 text-black
-            transition-all duration-150 ease-in-out z-40 overflow-y-auto overflow-x-hidden
+            fixed left-0 h-[calc(100vh-64px)] w-70 bg-gradient-to-b from-gray-50 to-white shadow-2xl
+            transition-all duration-300 ease-in-out z-40 overflow-hidden
             ${
               isSidebarMenuVisible
                 ? "translate-x-0 opacity-100"
@@ -184,101 +187,139 @@ const Sidebar = () => {
             }
           `}
         >
-          {/* Close Sidebar Button */}
-          <div className="inline-block sticky top-3 left-full z-50">
-            <button
-              className="text-xl px-3 py-[6px] bg-white shadow-md rounded-md z-50 cursor-pointer tooltip-trigger"
-              onClick={handleSidebarMenuToggle}
-              aria-expanded={isSidebarMenuVisible}
-              aria-controls="sidebar"
-            >
-              <i className="fa-solid fa-outdent"></i>
-            </button>
-            <div
-              className="
-                absolute right-full mr-2 top-1/2 transform -translate-y-1/2
-                opacity-0 tooltip-content
-                transition-opacity duration-300
-                bg-gray-800 text-white text-sm rounded-lg px-3 py-2
-                whitespace-nowrap z-500
-                before:content-[''] before:absolute before:top-1/2 before:-right-2 before:transform before:-translate-y-1/2
-                before:border-4 before:border-transparent before:border-l-gray-800
-              "
-            >
-              Close Sidebar
-            </div>
-          </div>
+          <div className="flex flex-col h-full">
+            {/* Header */}
+            <header className="bg-white border-b border-gray-200 p-4 px-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Projects
+                </h2>
+                <button
+                  onClick={handleSidebarMenuToggle}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                  aria-label="Close Sidebar"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
 
-          {/* Sidebar Content */}
-          <div className="w-full mt-7 mb-18 flex flex-col justify-between min-h-[calc(100%-140px)]">
-            <div className="flex flex-col gap-4">
+              {/* New TAOA Button */}
               <button
                 onClick={handleNewTAOAClick}
-                className="py-2 px-6 w-fit rounded-full flex items-center gap-2 font-bold bg-[#0d9488] hover:bg-[#0f766e] text-white cursor-pointer"
+                className="w-full bg-gradient-to-r from-teal-500 cursor-pointer to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white rounded-xl py-3 px-4 font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                aria-label="Create new TAOA project"
               >
-                <i className="fa-solid fa-plus"></i>New TAOA
+                <Plus className="w-5 h-5" />
+                New TAOA
               </button>
+            </header>
+
+            {/* Main Content */}
+            <section
+              className="flex-1 overflow-y-auto p-4 px-6"
+              aria-label="Projects list"
+            >
               {isLatestApplicationLoading ? (
                 <LatestApplicationSkeleton />
               ) : latestApplication.length === 0 ? (
-                <span className="py-2 px-4 w-full rounded-lg font-bold text-lg overflow-hidden text-center">
-                  No projects found
-                </span>
+                <div className="text-center py-12 text-gray-400">
+                  <FolderOpen className="w-16 h-16 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm font-medium">No projects found</p>
+                </div>
               ) : (
-                <>
-                  {latestApplication.length > 0 && (
-                    <div className="space-y-3">
-                      {latestApplication.map((application, index) => (
-                        <div key={index} className="space-y-1">
-                          <DocketsSection data={application}>
-                            {(toggleShowTab) => (
-                              <button
-                                className={`py-2 px-4 w-full rounded-lg cursor-pointer flex items-center gap-2 font-bold overflow-hidden ${
-                                  applicationDockets?.showApplication[
-                                    application.applicationId
-                                  ]
-                                    ? "bg-gradient-to-r from-[#44b9ff] to-[#3586cb] text-white"
-                                    : "bg-gradient-to-r from-[#f3fff3] to-[#eef7ff] border border-gray-300"
-                                }`}
-                                onClick={toggleShowTab}
-                              >
-                                <span
-                                  className={`transition-transform duration-300 ease-in-out ${
-                                    applicationDockets?.showApplication[
-                                      application.applicationId
-                                    ]?.showTab
-                                      ? "rotate-180"
-                                      : "rotate-0"
-                                  }`}
-                                >
-                                  <i className="fa-solid fa-chevron-down"></i>
-                                </span>
-                                <span className="truncate whitespace-nowrap overflow-hidden text-ellipsis">
-                                  Project {application.applicationNumber}
-                                </span>
-                              </button>
-                            )}
-                          </DocketsSection>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
+                <div className="space-y-3">
+                  {latestApplication.map((application, index) => (
+                    <article
+                      key={application.applicationId || index}
+                      className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                    >
+                      <DocketsSection data={application}>
+                        {(toggleShowTab) => (
+                          <button
+                            className={`w-full p-4 transition-all duration-200 flex items-center gap-3 border-b cursor-pointer ${
+                              applicationDockets?.showApplication[
+                                application.applicationId
+                              ]
+                                ? "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100"
+                                : "hover:bg-gray-50 border-transparent"
+                            }`}
+                            onClick={toggleShowTab}
+                            aria-expanded={
+                              applicationDockets?.showApplication[
+                                application.applicationId
+                              ]?.showTab
+                            }
+                            aria-controls={`project-${application.applicationId}-content`}
+                          >
+                            <i
+                              className={`fa-solid fa-chevron-down w-5 h-5 text-gray-400 transition-transform duration-200 ${
+                                applicationDockets?.showApplication[
+                                  application.applicationId
+                                ]?.showTab
+                                  ? "rotate-180"
+                                  : ""
+                              }`}
+                              aria-hidden="true"
+                            />
+                            <FolderOpen
+                              className="w-5 h-5 text-blue-600"
+                              aria-hidden="true"
+                            />
+                            <div className="flex-1 text-left">
+                              <p className="font-semibold text-gray-800">
+                                Project {application.applicationNumber}
+                              </p>
+                            </div>
+                          </button>
+                        )}
+                      </DocketsSection>
+                    </article>
+                  ))}
+                </div>
               )}
-            </div>
-            <div className="flex flex-col gap-3 items-start mt-4">
-              <button
-                className="cursor-pointer flex items-center gap-2 text-[#504d4d] font-bold"
-                onClick={handleProjectHistoryClick}
-              >
-                <i className="fa-solid fa-code"></i>Project History
-              </button>
-              <button className="cursor-pointer flex items-center gap-2 text-[#504d4d] font-bold">
-                <i className="fa-solid fa-paperclip"></i>Contact Us
-              </button>
-            </div>
+            </section>
+
+            {/* Footer */}
+            <footer className="border-t border-gray-200 p-4 px-6 bg-gradient-to-b from-white to-gray-50">
+              <nav aria-label="Secondary navigation">
+                <ul className="space-y-2">
+                  <li>
+                    <button
+                      className="w-full text-left px-4 py-3 rounded-lg cursor-pointer hover:bg-white hover:shadow-sm text-gray-700 transition-all duration-200 flex items-center gap-3 group border border-transparent hover:border-gray-200"
+                      onClick={handleProjectHistoryClick}
+                    >
+                      <Clock
+                        className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors"
+                        aria-hidden="true"
+                      />
+                      <span className="text-sm font-medium">
+                        Project History
+                      </span>
+                    </button>
+                  </li>
+                  <li>
+                    <button className="w-full text-left px-4 py-3 rounded-lg cursor-pointer hover:bg-white hover:shadow-sm text-gray-700 transition-all duration-200 flex items-center gap-3 group border border-transparent hover:border-gray-200">
+                      <HelpCircle
+                        className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors"
+                        aria-hidden="true"
+                      />
+                      <span className="text-sm font-medium">Contact Us</span>
+                    </button>
+                  </li>
+                </ul>
+              </nav>
+            </footer>
           </div>
-        </div>
+        </aside>
+      )}
+
+      {/* Overlay for mobile */}
+      {isSmallScreen && isSidebarMenuVisible && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30"
+          onClick={handleSidebarMenuToggle}
+          aria-hidden="true"
+        />
       )}
     </>
   );

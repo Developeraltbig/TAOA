@@ -1,5 +1,6 @@
 import TabsSection from "./TabsSection";
 import { useEffect, useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   clearDocketState,
@@ -84,19 +85,30 @@ const DocketsSection = ({ data, children }) => {
   return (
     <>
       {children && children(toggleShowTab)}
-      {showApplication?.showTab && (
-        <aside className="space-y-1 pl-2">
+      {showApplication?.showTab && data.dockets && (
+        <div
+          id={`project-${data.applicationId}-content`}
+          className="p-2"
+          role="region"
+          aria-label={`Claims for project ${data.applicationNumber}`}
+        >
           {data?.dockets?.map((docket, index) => {
+            const docketId = docket._id;
+            const isLastDocket = index === data.dockets.length - 1;
+
             return (
-              <div key={index} className="space-y-1">
+              <section
+                key={docketId}
+                className={`${!isLastDocket ? "mb-2" : ""}`}
+                aria-label={`Claim ${docket.rejectionType}`}
+              >
                 <TabsSection data={docket}>
                   {(toggleShowDocketTab) => (
                     <button
-                      key={index}
-                      className={`py-1 px-4 w-full rounded-lg cursor-pointer flex items-center gap-2 font-bold overflow-hidden ${
-                        applicationDockets?.showDocket[docket._id]
-                          ? "bg-[#0d9488] text-white"
-                          : "bg-gradient-to-r from-[#eef7ff] to-[#f3fff3] border border-gray-300"
+                      className={`w-full p-3 rounded-lg transition-all duration-200 flex items-center gap-3 cursor-pointer ${
+                        applicationDockets?.showDocket[docketId]
+                          ? "bg-gray-50"
+                          : "hover:bg-gray-50"
                       }`}
                       onClick={toggleShowDocketTab}
                       disabled={
@@ -104,27 +116,33 @@ const DocketsSection = ({ data, children }) => {
                         isPriorDescriptionFetching ||
                         isSubjectDescriptionFetching
                       }
+                      aria-expanded={
+                        applicationDockets?.showDocket[docketId]?.showTab
+                      }
+                      aria-controls={`docket-${docketId}-tabs`}
+                      aria-label={`Toggle tabs for claim ${docket.rejectionType}`}
                     >
-                      <span
-                        className={`transition-transform duration-300 ease-in-out ${
-                          applicationDockets?.showDocket[docket._id]?.showTab
-                            ? "rotate-180"
-                            : "rotate-0"
+                      <ChevronRight
+                        className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                          applicationDockets?.showDocket[docketId]?.showTab
+                            ? "rotate-90"
+                            : ""
                         }`}
-                      >
-                        <i className="fa-solid fa-chevron-down"></i>
-                      </span>
-                      <span className="truncate whitespace-nowrap overflow-hidden text-ellipsis">
-                        § {docket.rejectionType} - CLM(
-                        {formatClaims(docket.rejectedClaims)})
-                      </span>
+                        aria-hidden="true"
+                      />
+                      <div className="flex-1 text-left min-w-0">
+                        <p className="text-sm font-medium text-gray-700 truncate">
+                          § {docket.rejectionType} - CLM(
+                          {formatClaims(docket.rejectedClaims)})
+                        </p>
+                      </div>
                     </button>
                   )}
                 </TabsSection>
-              </div>
+              </section>
             );
           })}
-        </aside>
+        </div>
       )}
     </>
   );

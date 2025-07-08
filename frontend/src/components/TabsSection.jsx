@@ -4,16 +4,49 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { setDocketId } from "../store/slices/authUserSlice";
 import { setIsSidebarMenuVisible } from "../store/slices/modalsSlice";
 import { setShowDocket } from "../store/slices/applicationDocketsSlice";
+import {
+  GitBranch,
+  Layers,
+  FileText,
+  BarChart2,
+  Settings,
+  Users,
+} from "lucide-react";
 
 const TabsSection = ({ data, children }) => {
   const tabs = [
-    { href: "/technicalcomparison", tabName: "Technical Comparison" },
-    { href: "/novelfeatures", tabName: "Novel Features" },
-    { href: "/dependentclaims", tabName: "Dependent Claims" },
-    { href: "/onefeatures", tabName: "One Features" },
-    { href: "/compositeamendments", tabName: "Composite Amendments" },
-    { href: "/userinteraction", tabName: "User Interaction" },
+    {
+      href: "/technicalcomparison",
+      tabName: "Technical Comparison",
+      icon: <GitBranch className="w-3.5 h-3.5" />,
+    },
+    {
+      href: "/novelfeatures",
+      tabName: "Novel Features",
+      icon: <Layers className="w-3.5 h-3.5" />,
+    },
+    {
+      href: "/dependentclaims",
+      tabName: "Dependent Claims",
+      icon: <FileText className="w-3.5 h-3.5" />,
+    },
+    {
+      href: "/onefeatures",
+      tabName: "One Features",
+      icon: <BarChart2 className="w-3.5 h-3.5" />,
+    },
+    {
+      href: "/compositeamendments",
+      tabName: "Composite Amendments",
+      icon: <Settings className="w-3.5 h-3.5" />,
+    },
+    {
+      href: "/userinteraction",
+      tabName: "User Interaction",
+      icon: <Users className="w-3.5 h-3.5" />,
+    },
   ];
+
   const dispatch = useDispatch();
   const location = useLocation();
   const navigate = useNavigate();
@@ -69,31 +102,47 @@ const TabsSection = ({ data, children }) => {
     <>
       {children && children(toggleShowDocketTab)}
       {showDocket?.showTab && (
-        <aside className="space-y-1 pl-2 overflow-hidden flex flex-col truncate">
-          {tabs.map((tab, index) => {
-            return (
-              <button
-                key={index}
-                onClick={(e) => handleTabClick(e, tab.href)}
-                className={`py-1 px-4 w-full rounded-lg font-bold border cursor-pointer border-gray-300 flex items-center gap-2 ${
-                  location.pathname.includes(tab.href)
-                    ? "bg-white"
-                    : "bg-gradient-to-r from-[#eef7ff] to-[#f3fff3]"
-                }`}
-                disabled={
-                  isClaimsUploading ||
-                  isPriorDescriptionFetching ||
-                  isSubjectDescriptionFetching
-                }
-              >
-                <i className="fa-solid fa-bars-staggered"></i>
-                <span className="truncate whitespace-nowrap overflow-hidden text-ellipsis">
-                  {tab.tabName}
-                </span>
-              </button>
-            );
-          })}
-        </aside>
+        <nav
+          id={`docket-${data._id}-tabs`}
+          className="ml-8 mt-1 space-y-0.5"
+          role="navigation"
+          aria-label={`Navigation tabs for claim ${data.rejectionType}`}
+        >
+          <ul className="space-y-0.5">
+            {tabs.map((tab, index) => {
+              const isActive = location.pathname.includes(tab.href);
+              const tabId = `${data._id}-${tab.href.substring(1)}`;
+
+              return (
+                <li key={tabId}>
+                  <button
+                    onClick={(e) => handleTabClick(e, tab.href)}
+                    className={`w-full rounded-lg px-3 py-2 text-xs transition-all duration-200 flex items-center gap-2.5 cursor-pointer ${
+                      isActive
+                        ? "bg-[#3586cb] text-white shadow-md"
+                        : "hover:bg-gray-100 text-gray-600"
+                    }`}
+                    disabled={
+                      isClaimsUploading ||
+                      isPriorDescriptionFetching ||
+                      isSubjectDescriptionFetching
+                    }
+                    aria-current={isActive ? "page" : undefined}
+                    aria-label={`${tab.tabName} ${isActive ? "(current)" : ""}`}
+                  >
+                    <span
+                      className={isActive ? "text-white" : "text-gray-400"}
+                      aria-hidden="true"
+                    >
+                      {tab.icon}
+                    </span>
+                    <span className="text-left font-medium">{tab.tabName}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
       )}
     </>
   );

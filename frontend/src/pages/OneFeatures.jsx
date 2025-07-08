@@ -13,6 +13,7 @@ import {
 } from "../store/slices/applicationDocketsSlice";
 import { setFlag } from "../store/slices/draftSlice";
 import { useDispatch, useSelector } from "react-redux";
+import { handleDownload } from "../helpers/downloadFile";
 import { ChevronsRight, ChevronsDown } from "lucide-react";
 import FullScreenTable from "../components/FullScreenTable";
 import { formatTextByDelimiter } from "../helpers/formatText";
@@ -89,7 +90,7 @@ const OneFeatures = () => {
     handleRegenerateCloseModal();
   };
   const handleRegenerate = () => {
-    if (isOneFeaturesAmendmentClaimsLoading) {
+    if (isOneFeaturesAmendmentClaimsLoading || isOneFeaturesClaimsLoading) {
       return;
     }
     handleRegenerateOpenModal();
@@ -322,10 +323,6 @@ const OneFeatures = () => {
     }
   };
 
-  const handleDownload = (panel) => {
-    console.log(`Download clicked for ${panel}`);
-  };
-
   const fetchAmendedClaim = async () => {
     try {
       setIsAmendedClaimLoading(true);
@@ -425,7 +422,7 @@ const OneFeatures = () => {
 
   return (
     <>
-      <div className="min-h-full px-4 sm:px-8 md:px-12 lg:px-16 pt-16 pb-18">
+      <div className="min-h-full bg-gray-50 px-4 sm:px-8 md:px-12 lg:px-16 py-18">
         <DocketsHeaderSection
           title="One Feature for Further Prosecution"
           subtitle="One novel and patentable feature of subject application which is absent in cited arts."
@@ -444,9 +441,22 @@ const OneFeatures = () => {
                   onSelectionChange={setLeftViewMode}
                 />
               }
-              onDownload={() => handleDownload("left")}
+              onDownload={
+                isOneFeaturesClaimsLoading
+                  ? null
+                  : () =>
+                      handleDownload(
+                        activeApplicationId,
+                        docketData,
+                        "oneFeaturesData",
+                        "left"
+                      )
+              }
               onRegenerate={() => handleRegenerate()}
-              isClaimsLoading={isOneFeaturesAmendmentClaimsLoading}
+              isClaimsLoading={
+                isOneFeaturesClaimsLoading ||
+                isOneFeaturesAmendmentClaimsLoading
+              }
               onFullScreen={
                 leftViewMode === "Table" &&
                 !isOneFeaturesClaimsLoading &&
@@ -455,7 +465,7 @@ const OneFeatures = () => {
                   : null
               }
             >
-              <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto overflow-x-hidden relative">
+              <div className="h-full bg-white rounded border border-gray-200 py-3 px-5 overflow-y-auto overflow-x-hidden relative">
                 {isOneFeaturesClaimsLoading ? (
                   <OrbitingRingsLoader />
                 ) : !docketData?.oneFeaturesData?.comparisonTable ? (
@@ -568,7 +578,17 @@ const OneFeatures = () => {
                   onSelectionChange={setRightViewMode}
                 />
               }
-              onDownload={() => handleDownload("right")}
+              onDownload={
+                isOneFeaturesClaimsAmended
+                  ? () =>
+                      handleDownload(
+                        activeApplicationId,
+                        docketData,
+                        "oneFeaturesData",
+                        "right"
+                      )
+                  : null
+              }
               onFinalize={
                 isOneFeaturesClaimsAmended &&
                 !isOneFeaturesClaimsLoading &&
@@ -578,7 +598,7 @@ const OneFeatures = () => {
               }
               isClaimsFinalized={isOneFeaturesClaimsFinalized}
             >
-              <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto">
+              <div className="h-full bg-white rounded border border-gray-200 py-3 px-5 overflow-y-auto">
                 {isOneFeaturesAmendmentClaimsLoading ? (
                   <OrbitingRingsLoader />
                 ) : !isOneFeaturesClaimsAmended ||

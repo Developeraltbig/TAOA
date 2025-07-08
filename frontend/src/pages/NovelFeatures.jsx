@@ -13,6 +13,7 @@ import {
 } from "../store/slices/applicationDocketsSlice";
 import { setFlag } from "../store/slices/draftSlice";
 import { useDispatch, useSelector } from "react-redux";
+import { handleDownload } from "../helpers/downloadFile";
 import { ChevronsRight, ChevronsDown } from "lucide-react";
 import FullScreenTable from "../components/FullScreenTable";
 import { getAmendmentTitle } from "../helpers/amendmentTitle";
@@ -89,7 +90,7 @@ const NovelFeatures = () => {
     handleRegenerateCloseModal();
   };
   const handleRegenerate = () => {
-    if (isNovelAmendmentClaimsLoading) {
+    if (isNovelAmendmentClaimsLoading || isNovelClaimsLoading) {
       return;
     }
     handleRegenerateOpenModal();
@@ -320,10 +321,6 @@ const NovelFeatures = () => {
     }
   };
 
-  const handleDownload = (panel) => {
-    console.log(`Download clicked for ${panel}`);
-  };
-
   const fetchAmendedClaim = async () => {
     try {
       setIsAmendedClaimLoading(true);
@@ -423,7 +420,7 @@ const NovelFeatures = () => {
 
   return (
     <>
-      <div className="min-h-full px-4 sm:px-8 md:px-12 lg:px-16 pt-16 pb-18">
+      <div className="min-h-full bg-gray-50 px-4 sm:px-8 md:px-12 lg:px-16 py-18">
         <DocketsHeaderSection
           title="Novel Features"
           subtitle="Unique features absent in the cited art."
@@ -442,9 +439,21 @@ const NovelFeatures = () => {
                   onSelectionChange={setLeftViewMode}
                 />
               }
-              onDownload={() => handleDownload("left")}
+              onDownload={
+                isNovelClaimsLoading
+                  ? null
+                  : () =>
+                      handleDownload(
+                        activeApplicationId,
+                        docketData,
+                        "novelData",
+                        "left"
+                      )
+              }
               onRegenerate={() => handleRegenerate()}
-              isClaimsLoading={isNovelAmendmentClaimsLoading}
+              isClaimsLoading={
+                isNovelClaimsLoading || isNovelAmendmentClaimsLoading
+              }
               onFullScreen={
                 leftViewMode === "Table" &&
                 !isNovelClaimsLoading &&
@@ -453,7 +462,7 @@ const NovelFeatures = () => {
                   : null
               }
             >
-              <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto overflow-x-hidden relative">
+              <div className="h-full bg-white rounded border border-gray-200 py-3 px-5 overflow-y-auto overflow-x-hidden relative">
                 {isNovelClaimsLoading ? (
                   <OrbitingRingsLoader />
                 ) : !docketData?.novelData?.comparisonTable ? (
@@ -565,7 +574,17 @@ const NovelFeatures = () => {
                   onSelectionChange={setRightViewMode}
                 />
               }
-              onDownload={() => handleDownload("right")}
+              onDownload={
+                isNovelClaimsAmended
+                  ? () =>
+                      handleDownload(
+                        activeApplicationId,
+                        docketData,
+                        "novelData",
+                        "right"
+                      )
+                  : null
+              }
               onFinalize={
                 isNovelClaimsAmended &&
                 !isNovelClaimsLoading &&
@@ -575,7 +594,7 @@ const NovelFeatures = () => {
               }
               isClaimsFinalized={isNovelClaimsFinalized}
             >
-              <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto">
+              <div className="h-full bg-white rounded border border-gray-200 py-3 px-5 overflow-y-auto">
                 {isNovelAmendmentClaimsLoading ? (
                   <OrbitingRingsLoader />
                 ) : !isNovelClaimsAmended || isNovelClaimsLoading ? (

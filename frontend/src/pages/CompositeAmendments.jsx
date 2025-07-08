@@ -13,6 +13,7 @@ import {
 } from "../store/slices/applicationDocketsSlice";
 import { setFlag } from "../store/slices/draftSlice";
 import { useDispatch, useSelector } from "react-redux";
+import { handleDownload } from "../helpers/downloadFile";
 import { ChevronsRight, ChevronsDown } from "lucide-react";
 import FullScreenTable from "../components/FullScreenTable";
 import { formatTextByDelimiter } from "../helpers/formatText";
@@ -89,7 +90,7 @@ const CompositeAmendments = () => {
     handleRegenerateCloseModal();
   };
   const handleRegenerate = () => {
-    if (isCompositeAmendmentClaimsLoading) {
+    if (isCompositeAmendmentClaimsLoading || isCompositeClaimsLoading) {
       return;
     }
     handleRegenerateOpenModal();
@@ -316,10 +317,6 @@ const CompositeAmendments = () => {
     }
   };
 
-  const handleDownload = (panel) => {
-    console.log(`Download clicked for ${panel}`);
-  };
-
   const fetchAmendedClaim = async () => {
     try {
       setIsAmendedClaimLoading(true);
@@ -419,7 +416,7 @@ const CompositeAmendments = () => {
 
   return (
     <>
-      <div className="min-h-full px-4 sm:px-8 md:px-12 lg:px-16 pt-16 pb-18">
+      <div className="min-h-full bg-gray-50 px-4 sm:px-8 md:px-12 lg:px-16 py-18">
         <DocketsHeaderSection
           title="Composite Claim Amendments"
           subtitle="Suggestions based on overall consideration of subject application and cited arts."
@@ -438,9 +435,21 @@ const CompositeAmendments = () => {
                   onSelectionChange={setLeftViewMode}
                 />
               }
-              onDownload={() => handleDownload("left")}
+              onDownload={
+                isCompositeClaimsLoading
+                  ? null
+                  : () =>
+                      handleDownload(
+                        activeApplicationId,
+                        docketData,
+                        "compositeData",
+                        "left"
+                      )
+              }
               onRegenerate={() => handleRegenerate()}
-              isClaimsLoading={isCompositeAmendmentClaimsLoading}
+              isClaimsLoading={
+                isCompositeAmendmentClaimsLoading || isCompositeClaimsLoading
+              }
               onFullScreen={
                 leftViewMode === "Table" &&
                 !isCompositeClaimsLoading &&
@@ -449,7 +458,7 @@ const CompositeAmendments = () => {
                   : null
               }
             >
-              <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto overflow-x-hidden relative">
+              <div className="h-full bg-white rounded border border-gray-200 py-3 px-5 overflow-y-auto overflow-x-hidden relative">
                 {isCompositeClaimsLoading ? (
                   <OrbitingRingsLoader />
                 ) : !docketData?.compositeData?.comparisonTable ? (
@@ -561,7 +570,17 @@ const CompositeAmendments = () => {
                   onSelectionChange={setRightViewMode}
                 />
               }
-              onDownload={() => handleDownload("right")}
+              onDownload={
+                isCompositeClaimsAmended
+                  ? () =>
+                      handleDownload(
+                        activeApplicationId,
+                        docketData,
+                        "compositeData",
+                        "right"
+                      )
+                  : null
+              }
               onFinalize={
                 isCompositeClaimsAmended &&
                 !isCompositeClaimsLoading &&
@@ -571,7 +590,7 @@ const CompositeAmendments = () => {
               }
               isClaimsFinalized={isCompositeClaimsFinalized}
             >
-              <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto">
+              <div className="h-full bg-white rounded border border-gray-200 py-3 px-5 overflow-y-auto">
                 {isCompositeAmendmentClaimsLoading ? (
                   <OrbitingRingsLoader />
                 ) : !isCompositeClaimsAmended || isCompositeClaimsLoading ? (

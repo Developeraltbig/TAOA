@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { formatTextToParagraphs } from "../helpers/formatText";
 
 const OtherRejectionReasoningSection = ({ examinerReasoning }) => {
   const textRef = useRef(null);
@@ -32,9 +33,10 @@ const OtherRejectionReasoningSection = ({ examinerReasoning }) => {
               className={`text-gray-700 text-sm whitespace-pre-wrap ${
                 showMore ? "" : "line-clamp-2"
               }`}
-            >
-              {examinerReasoning}
-            </p>
+              dangerouslySetInnerHTML={{
+                __html: formatTextToParagraphs(examinerReasoning),
+              }}
+            ></p>
             {isOverflowing && (
               <button
                 onClick={() => setShowMore(!showMore)}

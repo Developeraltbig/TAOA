@@ -16,6 +16,7 @@ import ApplicationsHistory from "./pages/ApplicationsHistory";
 import LayoutWithoutSidebar from "./layouts/LayoutWithoutSidebar";
 
 import "./App.css";
+import ResetPassword from "./components/ResetPassword";
 
 function App() {
   return (
@@ -44,6 +45,8 @@ function App() {
             <Route path="userinteraction" element={<UserInteraction />} />
           </Route>
         </Route>
+
+        <Route path="/resetpassword/:token" element={<ResetPassword />} />
 
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

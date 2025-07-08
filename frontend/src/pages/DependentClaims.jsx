@@ -13,6 +13,7 @@ import {
 } from "../store/slices/applicationDocketsSlice";
 import { setFlag } from "../store/slices/draftSlice";
 import { useDispatch, useSelector } from "react-redux";
+import { handleDownload } from "../helpers/downloadFile";
 import { ChevronsRight, ChevronsDown } from "lucide-react";
 import FullScreenTable from "../components/FullScreenTable";
 import { formatTextByDelimiter } from "../helpers/formatText";
@@ -89,7 +90,7 @@ const DependentClaims = () => {
     handleRegenerateCloseModal();
   };
   const handleRegenerate = () => {
-    if (isDependentAmendmentClaimsLoading) {
+    if (isDependentAmendmentClaimsLoading || isDependentClaimsLoadingState) {
       return;
     }
     handleRegenerateOpenModal();
@@ -323,10 +324,6 @@ const DependentClaims = () => {
     }
   };
 
-  const handleDownload = (panel) => {
-    console.log(`Download clicked for ${panel}`);
-  };
-
   const fetchAmendedClaim = async () => {
     try {
       setIsAmendedClaimLoading(true);
@@ -426,7 +423,7 @@ const DependentClaims = () => {
 
   return (
     <>
-      <div className="min-h-full px-4 sm:px-8 md:px-12 lg:px-16 pt-16 pb-18">
+      <div className="min-h-full bg-gray-50 px-4 sm:px-8 md:px-12 lg:px-16 py-18">
         <DocketsHeaderSection
           title="Novel Dependent Claims"
           subtitle="Dependent claims with novel aspects."
@@ -445,9 +442,22 @@ const DependentClaims = () => {
                   onSelectionChange={setLeftViewMode}
                 />
               }
-              onDownload={() => handleDownload("left")}
+              onDownload={
+                isDependentClaimsLoadingState
+                  ? null
+                  : () =>
+                      handleDownload(
+                        activeApplicationId,
+                        docketData,
+                        "dependentData",
+                        "left"
+                      )
+              }
               onRegenerate={() => handleRegenerate()}
-              isClaimsLoading={isDependentAmendmentClaimsLoading}
+              isClaimsLoading={
+                isDependentAmendmentClaimsLoading ||
+                isDependentClaimsLoadingState
+              }
               onFullScreen={
                 leftViewMode === "Table" &&
                 !isDependentClaimsLoadingState &&
@@ -456,7 +466,7 @@ const DependentClaims = () => {
                   : null
               }
             >
-              <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto overflow-x-hidden relative">
+              <div className="h-full bg-white rounded border border-gray-200 py-3 px-5 overflow-y-auto overflow-x-hidden relative">
                 {isDependentClaimsLoadingState ? (
                   <OrbitingRingsLoader />
                 ) : !docketData?.dependentData?.comparisonTable ? (
@@ -569,7 +579,17 @@ const DependentClaims = () => {
                   onSelectionChange={setRightViewMode}
                 />
               }
-              onDownload={() => handleDownload("right")}
+              onDownload={
+                isDependentClaimsAmendedState
+                  ? () =>
+                      handleDownload(
+                        activeApplicationId,
+                        docketData,
+                        "dependentData",
+                        "right"
+                      )
+                  : null
+              }
               onFinalize={
                 isDependentClaimsAmendedState &&
                 !isDependentClaimsLoadingState &&
@@ -579,7 +599,7 @@ const DependentClaims = () => {
               }
               isClaimsFinalized={isDependentClaimsFinalizedState}
             >
-              <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto">
+              <div className="h-full bg-white rounded border border-gray-200 py-3 px-5 overflow-y-auto">
                 {isDependentAmendmentClaimsLoading ? (
                   <OrbitingRingsLoader />
                 ) : !isDependentClaimsAmendedState ||

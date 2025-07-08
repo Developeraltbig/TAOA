@@ -13,6 +13,7 @@ import {
 } from "../store/slices/applicationDocketsSlice";
 import { setFlag } from "../store/slices/draftSlice";
 import { useDispatch, useSelector } from "react-redux";
+import { handleDownload } from "../helpers/downloadFile";
 import { ChevronsRight, ChevronsDown } from "lucide-react";
 import FullScreenTable from "../components/FullScreenTable";
 import { formatTextByDelimiter } from "../helpers/formatText";
@@ -89,7 +90,7 @@ const TechnicalComparison = () => {
     handleRegenerateCloseModal();
   };
   const handleRegenerate = () => {
-    if (isTechnicalAmendmentClaimsLoading) {
+    if (isTechnicalAmendmentClaimsLoading || isTechnicalClaimsLoading) {
       return;
     }
     handleRegenerateOpenModal();
@@ -320,10 +321,6 @@ const TechnicalComparison = () => {
     }
   };
 
-  const handleDownload = (panel) => {
-    console.log(`Download clicked for ${panel}`);
-  };
-
   const fetchAmendedClaim = async () => {
     try {
       setIsAmendedClaimLoading(true);
@@ -423,7 +420,7 @@ const TechnicalComparison = () => {
 
   return (
     <>
-      <div className="min-h-full px-4 sm:px-8 md:px-12 lg:px-16 pt-16 pb-18">
+      <div className="min-h-full bg-gray-50 px-4 sm:px-8 md:px-12 lg:px-16 py-18">
         <DocketsHeaderSection
           title="Technical Comparison"
           subtitle="Key differences between the subject application and cited art."
@@ -442,9 +439,21 @@ const TechnicalComparison = () => {
                   onSelectionChange={setLeftViewMode}
                 />
               }
-              onDownload={() => handleDownload("left")}
+              onDownload={
+                isTechnicalClaimsLoading
+                  ? null
+                  : () =>
+                      handleDownload(
+                        activeApplicationId,
+                        docketData,
+                        "technicalData",
+                        "left"
+                      )
+              }
               onRegenerate={() => handleRegenerate()}
-              isClaimsLoading={isTechnicalAmendmentClaimsLoading}
+              isClaimsLoading={
+                isTechnicalClaimsLoading || isTechnicalAmendmentClaimsLoading
+              }
               onFullScreen={
                 leftViewMode === "Table" &&
                 !isTechnicalClaimsLoading &&
@@ -453,7 +462,7 @@ const TechnicalComparison = () => {
                   : null
               }
             >
-              <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto overflow-x-hidden relative">
+              <div className="h-full bg-white rounded border border-gray-200 py-3 px-5 overflow-y-auto overflow-x-hidden relative">
                 {isTechnicalClaimsLoading ? (
                   <OrbitingRingsLoader />
                 ) : !docketData?.technicalData?.comparisonTable ? (
@@ -465,7 +474,7 @@ const TechnicalComparison = () => {
                 ) : leftViewMode === "Table" ? (
                   <table className="w-full border-collapse border border-gray-300 border-t-0 text-center">
                     <thead>
-                      <tr className="border-b border-gray-300 bg-[#0284c7] sticky -top-3 z-10">
+                      <tr className="border-b border-gray-300 bg-[#3586cb] sticky -top-3 z-10">
                         <th className="py-3 px-6 w-1/2 text-md font-bold text-white border-r border-gray-300">
                           Subject Application
                         </th>
@@ -565,7 +574,17 @@ const TechnicalComparison = () => {
                   onSelectionChange={setRightViewMode}
                 />
               }
-              onDownload={() => handleDownload("right")}
+              onDownload={
+                isTechnicalClaimsAmended
+                  ? () =>
+                      handleDownload(
+                        activeApplicationId,
+                        docketData,
+                        "technicalData",
+                        "right"
+                      )
+                  : null
+              }
               onFinalize={
                 isTechnicalClaimsAmended &&
                 !isTechnicalClaimsLoading &&
@@ -575,7 +594,7 @@ const TechnicalComparison = () => {
               }
               isClaimsFinalized={isTechnicalClaimsFinalized}
             >
-              <div className="h-full bg-gray-50 rounded border border-gray-200 py-3 px-5 overflow-y-auto">
+              <div className="h-full bg-white rounded border border-gray-200 py-3 px-5 overflow-y-auto">
                 {isTechnicalAmendmentClaimsLoading ? (
                   <OrbitingRingsLoader />
                 ) : !isTechnicalClaimsAmended || isTechnicalClaimsLoading ? (

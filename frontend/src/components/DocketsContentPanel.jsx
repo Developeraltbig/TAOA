@@ -13,14 +13,14 @@ const DocketsContentPanel = ({
   isClaimsFinalized,
 }) => {
   return (
-    <div className="border-2 border-gray-400 rounded-lg bg-white h-full flex flex-col relative p-4">
-      <div className="w-fit absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 bg-white p-2">
+    <div className="border-2 border-gray-400 rounded-lg bg-gray-50 h-full flex flex-col relative p-4">
+      <div className="w-fit absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 bg-gray-50 p-2">
         <span className="text-gray-400">
           <Sparkle size={35} />
         </span>
       </div>
 
-      <div className="w-fit absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 bg-white p-2">
+      <div className="w-fit absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 bg-gray-50 p-2">
         <span className="text-gray-400">
           <Sparkle size={35} />
         </span>

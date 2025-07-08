@@ -12,9 +12,10 @@ import { useRef, useState } from "react";
 import { post } from "../services/ApiEndpoint";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import ApplicationHeader from "../components/ApplicationHeader";
 import { clearShowState } from "../store/slices/applicationDocketsSlice";
 import { addOrUpdateApplication } from "../store/slices/latestApplicationsSlice";
-import ApplicationAnalyseSkeleton from "../skeletons/ApplicationAnalyseSkeleton";
+import ApplicationDetailsSkeleton from "../skeletons/ApplicationDetailsSkeleton";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -141,100 +142,93 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="flex flex-col gap-6 px-4 sm:px-8 md:px-12 lg:px-16 pt-16 pb-10 transition-all duration-300 ease-in min-w-0">
-      <header className="text-[calc(1rem+0.9vw)] font-[700]">
-        <h2>
-          Hello,{" "}
-          <span className="text-[#38b6ff] font-bold">
-            {authUser.name.split(" ")[0]}
-          </span>
-        </h2>
-        <h5>Thinking about analyzing Office Actions</h5>
-        <h5>(Examination Reports/Search Report) today?</h5>
-      </header>
+    <div className="h-full bg-gray-50">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <ApplicationHeader userName={authUser.name} />
 
-      <section className="bg-gradient-to-l from-[#e6eefa] to-[#f0faf4] rounded-xl px-6 py-6 sm:px-8 sm:py-8 h-fit shadow-lg max-[425px]:px-2 max-[375px]:px-1">
-        <h2 id="form-heading" className="font-[500] text-[1.25rem] mb-4">
-          Subject Patent Application
-        </h2>
+        <section className="bg-white rounded-xl px-6 py-6 sm:px-8 sm:py-8 h-fit shadow-lg max-[425px]:px-2 max-[375px]:px-1 mb-6 border border-blue-100">
+          <h2 id="form-heading" className="font-[500] text-[1.25rem] mb-4">
+            Subject Patent Application
+          </h2>
 
-        <div className="flex flex-col md:flex-row gap-3 items-stretch">
-          <form className="flex-grow min-w-0" onSubmit={handleFetchClick}>
-            <div className="h-12 border border-gray-400 flex items-center rounded-lg min-w-[300px]">
-              <input
-                type="number"
-                name="applicationNumber"
-                placeholder="Type Application Number"
-                className="flex-grow outline-none no-spinner p-3 min-w-0"
-                value={applicationNumber}
-                onChange={(e) => setApplicationNumber(e.target.value)}
-                required
-              />
-              <button
-                type="submit"
-                className="min-w-[100px] w-fit h-full py-2 px-4 sm:px-6 rounded-r-md cursor-pointer bg-[#0d9488] hover:bg-[#0f766e] font-semibold flex gap-2 justify-center items-center text-white shadow-md"
-                disabled={isApplicationAnalysing || isApplicationUploading}
-              >
-                {isApplicationAnalysing ? (
-                  <>
-                    <div className="w-6 h-6 border-4 border-t-gray-600 border-gray-50 rounded-full animate-spin"></div>
-                    <span>Analysing...</span>
-                  </>
-                ) : (
-                  <>
+          <div className="flex flex-col md:flex-row gap-3 items-stretch">
+            <form className="flex-grow min-w-0" onSubmit={handleFetchClick}>
+              <div className="h-12 border border-gray-400 flex items-center rounded-lg min-w-[300px]">
+                <input
+                  type="number"
+                  name="applicationNumber"
+                  placeholder="Type Application Number"
+                  className="flex-grow outline-none no-spinner p-3 min-w-0"
+                  value={applicationNumber}
+                  onChange={(e) => setApplicationNumber(e.target.value)}
+                  required
+                />
+                <button
+                  type="submit"
+                  className="min-w-[100px] w-fit h-full py-2 px-4 sm:px-6 rounded-r-md cursor-pointer bg-[#0d9488] hover:bg-[#0f766e] font-semibold flex gap-2 justify-center items-center text-white shadow-md"
+                  disabled={isApplicationAnalysing || isApplicationUploading}
+                >
+                  {isApplicationAnalysing ? (
                     <>
-                      <span>Fetch</span>
-                      <i className="fa-solid fa-link"></i>
+                      <div className="w-6 h-6 border-4 border-t-gray-600 border-gray-50 rounded-full animate-spin"></div>
+                      <span>Analysing...</span>
                     </>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+                  ) : (
+                    <>
+                      <>
+                        <span>Fetch</span>
+                        <i className="fa-solid fa-link"></i>
+                      </>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
 
-          <div className="flex flex-col md:flex-row items-center justify-center md:items-stretch gap-3">
-            <div className="flex items-center justify-center h-10 md:h-auto px-3 border-l border-r border-gray-400">
-              <div className="border border-gray-400 rounded-lg px-3 py-2 bg-gray-100">
-                <span className="text-black font-medium">OR</span>
+            <div className="flex flex-col md:flex-row items-center justify-center md:items-stretch gap-3">
+              <div className="flex items-center justify-center h-10 md:h-auto px-3 border-l border-r border-gray-400">
+                <div className="border border-gray-400 rounded-lg px-3 py-2 bg-gray-100">
+                  <span className="text-black font-medium">OR</span>
+                </div>
+              </div>
+
+              <div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept=".doc,.docx,.pdf"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  className="w-full md:w-fit min-w-[150px] max-w-[300px] h-12 py-2 px-4 sm:px-6 rounded-md cursor-pointer bg-[#0284c7] hover:bg-[#026395] font-semibold flex gap-2 justify-center items-center text-white shadow-md"
+                  onClick={handleUploadClick}
+                  disabled={isApplicationAnalysing || isApplicationUploading}
+                >
+                  {isApplicationUploading ? (
+                    <>
+                      <div className="w-6 h-6 border-4 border-t-blue-600 border-gray-50 rounded-full animate-spin"></div>
+                      <span>Analysing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <>
+                        <span>Upload OA</span>
+                        <i className="fa-solid fa-upload"></i>
+                      </>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
-
-            <div>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept=".doc,.docx,.pdf"
-                className="hidden"
-              />
-              <button
-                type="button"
-                className="w-full md:w-fit min-w-[150px] max-w-[300px] h-12 py-2 px-4 sm:px-6 rounded-md cursor-pointer bg-[#0284c7] hover:bg-[#026395] font-semibold flex gap-2 justify-center items-center text-white shadow-md"
-                onClick={handleUploadClick}
-                disabled={isApplicationAnalysing || isApplicationUploading}
-              >
-                {isApplicationUploading ? (
-                  <>
-                    <div className="w-6 h-6 border-4 border-t-blue-600 border-gray-50 rounded-full animate-spin"></div>
-                    <span>Analysing...</span>
-                  </>
-                ) : (
-                  <>
-                    <>
-                      <span>Upload OA</span>
-                      <i className="fa-solid fa-upload"></i>
-                    </>
-                  </>
-                )}
-              </button>
-            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {(isApplicationAnalysing || isApplicationUploading) && (
-        <ApplicationAnalyseSkeleton />
-      )}
+        {(isApplicationAnalysing || isApplicationUploading) && (
+          <ApplicationDetailsSkeleton />
+        )}
+      </main>
     </div>
   );
 };

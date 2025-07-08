@@ -30,12 +30,6 @@ const AmendedClaimModal = ({
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    if (isVisible) {
-      document.body.classList.add("overflow-hidden");
-    }
-  }, [isVisible]);
-
   if (!isRendering) {
     return null;
   }

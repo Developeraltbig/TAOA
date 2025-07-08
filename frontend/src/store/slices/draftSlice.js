@@ -25,12 +25,7 @@ const draftSlice = createSlice({
     updateFinalizationStatus: (state, action) => {
       const { applicationId, rejectionStatuses } = action.payload;
 
-      const allFinalized = Object.values(rejectionStatuses).every(
-        (status) => status.isFinalized
-      );
-
       state.finalizationStatus[applicationId] = {
-        allFinalized,
         rejections: rejectionStatuses,
       };
     },

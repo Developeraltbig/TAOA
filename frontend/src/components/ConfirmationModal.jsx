@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { TriangleAlert, X } from "lucide-react";
 
 const ConfirmationModal = ({
+  title,
   isOpen,
   onClose,
-  onConfirm,
-  title,
   message,
-  confirmButtonText,
+  onConfirm,
+  isLatestOpen,
   cancelButtonText,
+  confirmButtonText,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
@@ -30,11 +31,13 @@ const ConfirmationModal = ({
   useEffect(() => {
     if (isVisible) {
       document.body.classList.add("overflow-hidden");
-    } else {
+    } else if (isLatestOpen !== true) {
       document.body.classList.remove("overflow-hidden");
     }
     return () => {
-      document.body.classList.remove("overflow-hidden");
+      if (isLatestOpen !== true) {
+        document.body.classList.remove("overflow-hidden");
+      }
     };
   }, [isVisible]);
 

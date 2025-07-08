@@ -1,9 +1,14 @@
+import {
+  FolderOpen,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+} from "lucide-react";
 import { toast } from "react-toastify";
 import {
   clearUserSlice,
   setApplicationId,
 } from "../store/slices/authUserSlice";
-import { ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { post } from "../services/ApiEndpoint";
 import { useNavigate } from "react-router-dom";
@@ -61,9 +66,54 @@ const ApplicationsHistory = () => {
   const [searchedApplications, setSearchedApplication] = useState([]);
   const [isApplicationFetching, setIsApplicationFetching] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  const totalItems = searchedApplications.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentApplications = searchedApplications.slice(startIndex, endIndex);
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxPagesToShow = 5;
+
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push("...");
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push("...");
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  };
+
   const handleInputChange = (event) => {
     if (!isNaN(event.target.value)) {
       setSearchValue(event.target.value);
+      setCurrentPage(1);
     }
   };
 
@@ -121,6 +171,12 @@ const ApplicationsHistory = () => {
     }
   };
 
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+      setCurrentPage(page);
+    }
+  };
+
   useEffect(() => {
     fetchApplications();
     dispatch(clearShowState());
@@ -139,7 +195,7 @@ const ApplicationsHistory = () => {
 
   return (
     <>
-      <div className="min-h-full px-4 sm:px-8 md:px-12 lg:px-16 pt-16 pb-18">
+      <div className="min-h-full bg-gray-50 px-4 sm:px-8 md:px-12 lg:px-16 py-18">
         <div className="mb-10">
           <h1 className="text-2xl font-bold text-slate-800 mb-2">Projects</h1>
           <p className="text-base text-slate-600">
@@ -166,7 +222,7 @@ const ApplicationsHistory = () => {
           <>
             <div className="bg-white rounded-xl overflow-hidden shadow-sm">
               <table className="min-w-full table-auto">
-                <thead className="bg-[#0284c7]">
+                <thead className="bg-[#3586cb]">
                   <tr className="text-white">
                     <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
                       Application Number
@@ -189,7 +245,7 @@ const ApplicationsHistory = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {searchedApplications.map((project, index) => {
+                  {currentApplications.map((project, index) => {
                     const { reject101, reject102, reject103, reject112 } =
                       filterRejection(project.rejections);
                     return (
@@ -268,6 +324,57 @@ const ApplicationsHistory = () => {
               </table>
             </div>
 
+            {/* Pagination Controls */}
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-slate-600">
+                Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of{" "}
+                {totalItems} applications
+              </div>
+
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`p-2 rounded-md transition-colors ${
+                    currentPage === 1
+                      ? "text-slate-300 cursor-not-allowed"
+                      : "text-slate-600 hover:bg-slate-200 cursor-pointer"
+                  }`}
+                >
+                  <ChevronLeft size={20} />
+                </button>
+
+                {getPageNumbers().map((page, index) => (
+                  <button
+                    key={index}
+                    onClick={() => page !== "..." && handlePageChange(page)}
+                    disabled={page === "..."}
+                    className={`min-w-[40px] h-10 px-2 rounded-md transition-colors cursor-pointer ${
+                      page === currentPage
+                        ? "bg-blue-500 text-white font-medium"
+                        : page === "..."
+                        ? "cursor-default text-slate-400"
+                        : "text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`p-2 rounded-md transition-colors ${
+                    currentPage === totalPages
+                      ? "text-slate-300 cursor-not-allowed"
+                      : "text-slate-600 hover:bg-slate-200 cursor-pointer"
+                  }`}
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            </div>
+
             <div className="mt-4 text-slate-500 text-sm">
               <i className="fas fa-info-circle mr-2"></i>
               <strong>Rejection Types:</strong> §101 (Eligibility) • §102 (Prior
@@ -275,13 +382,13 @@ const ApplicationsHistory = () => {
             </div>
           </>
         ) : (
-          <div>
-            <span className="font-semibold text-2xl mt-">
-              No Projects Found!
-            </span>
+          <div className="text-center py-12 text-gray-400">
+            <FolderOpen className="w-16 h-16 mx-auto mb-3 opacity-50" />
+            <p className="text-sm font-medium">No projects found</p>
           </div>
         )}
       </div>
+
       {isApplicationFetching && (
         <div className="absolute z-200 w-full h-[calc(100vh+64px)] -mt-16 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/60">
           <OrbitingRingsLoader color="white" />
