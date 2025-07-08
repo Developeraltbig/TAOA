@@ -21,7 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors({ origin: `${process.env.CORS_ORIGIN_URL}`, credentials: true }));
 
 app.get("/", (req, res, next) => {
-  res.send("Welcome");
+  res.send("Welcome to the Server!");
 });
 
 app.use("/api/auth", authRoutes);

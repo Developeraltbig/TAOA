@@ -87,7 +87,7 @@ router.post("/status", verifyToken, async (req, res, next) => {
     res.status(200).json({
       status: "success",
       message: "Successfully checked rejection status",
-      data: !!finalizedAmendments?.finalizedType,
+      data: finalizedAmendments || null,
     });
   } catch (error) {
     next(error);

@@ -234,6 +234,7 @@ router.post("/analyse", verifyToken, async (req, res, next) => {
       applicationId,
       applicationNumber: appNumber,
       isFirstRejection,
+      viewTutorial: true,
       publicationNumber: "US" + publicationDetails.document_number + "A1",
       user: user.userId,
       applicationDetails,
@@ -499,6 +500,7 @@ router.post(
         publicationNumber: "US" + publicationDetails.document_number + "A1",
         isFirstRejection,
         user: user.userId,
+        viewTutorial: true,
         isSubjectClaimsExists: false,
         isSubjectDescriptionExists: false,
         isPriorArtDescriptionExists: false,
@@ -558,6 +560,28 @@ router.post(
     }
   }
 );
+
+router.post("/updateTutorial", verifyToken, async (req, res, next) => {
+  try {
+    const user = req.user;
+    const { applicationId } = req.body;
+
+    await ApplicationDetails.findOneAndUpdate(
+      {
+        applicationId,
+        user: user.userId,
+      },
+      { $set: { viewTutorial: false } }
+    );
+
+    res.status(200).json({
+      status: "success",
+      message: `Successfully updated view tutorial`,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.post(
   "/fetchLatestThreeApplication",
@@ -906,6 +930,203 @@ router.post(
     }
   }
 );
+
+router.post("/updateClaims", verifyToken, async (req, res, next) => {
+  try {
+    const user = req.user;
+    const { applicationId, claims } = req.body;
+    if (!applicationId || !claims) {
+      return res.status(400).json({
+        status: "error",
+        message: "All fields are required",
+      });
+    }
+
+    const checkApplicationExists = await ApplicationDetails.findOne({
+      applicationId,
+      user: user.userId,
+    });
+
+    if (!checkApplicationExists) {
+      return res.status(400).json({
+        status: "error",
+        message: "Application doesn't exist.",
+      });
+    }
+
+    let structuredClaims = await processClaimsWithAI(claims);
+    if (!structuredClaims) {
+      structuredClaims = await processClaimsWithAI(claims);
+    }
+
+    if (!structuredClaims) {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to process file content",
+      });
+    }
+
+    const independentClaims = structuredClaims.map(
+      (claim) => claim.independentClaim
+    );
+
+    await ApplicationDocuments.findOneAndUpdate(
+      {
+        applicationId,
+        user: user.userId,
+      },
+      {
+        $set: {
+          updatedAt: new Date(),
+          subjectPublicationClaim: claims,
+          structuredClaims,
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+        setDefaultsOnInsert: true,
+      }
+    );
+
+    if (checkApplicationExists.isSubjectClaimsExists) {
+      const deleteCriteria = {
+        applicationId,
+        user: user.userId,
+      };
+      await Promise.all([
+        Dockets.deleteMany(deleteCriteria),
+        OneFeature.deleteMany(deleteCriteria),
+        NovelFeature.deleteMany(deleteCriteria),
+        DependentClaim.deleteMany(deleteCriteria),
+        CompositeAmendment.deleteMany(deleteCriteria),
+        FinalizedAmendment.deleteMany(deleteCriteria),
+        TechnicalComparison.deleteMany(deleteCriteria),
+        OtherRejectionResponse.deleteMany(deleteCriteria),
+      ]);
+    }
+
+    await ApplicationDetails.findOneAndUpdate(
+      {
+        applicationId,
+        user: user.userId,
+      },
+      {
+        $set: {
+          "rejections.$[rej].analyseRejection": true,
+          isSubjectClaimsExists: true,
+        },
+      },
+      {
+        new: true,
+        arrayFilters: [
+          {
+            "rej.rejectionType": { $regex: "102|103" },
+            "rej.claimsRejected": { $elemMatch: { $in: independentClaims } },
+          },
+        ],
+      }
+    );
+
+    const updatedApplication = await ApplicationDetails.findOneAndUpdate(
+      {
+        applicationId,
+        user: user.userId,
+      },
+      {
+        $set: {
+          "rejections.$[rej].analyseRejection": false,
+        },
+      },
+      {
+        new: true,
+        arrayFilters: [
+          {
+            "rej.rejectionType": { $regex: "102|103" },
+            "rej.claimsRejected": {
+              $not: { $elemMatch: { $in: independentClaims } },
+            },
+          },
+        ],
+      }
+    );
+
+    const getApplicationWithDockets = async () => {
+      const dockets = await Dockets.find({
+        applicationId,
+        user: user.userId,
+      }).sort({ updatedAt: 1 });
+
+      const applicationObj = updatedApplication.toObject();
+
+      if (dockets.length > 0) {
+        applicationObj.dockets = await Promise.all(
+          dockets.map(async (docket) => {
+            const technicalData = await TechnicalComparison.findOne({
+              user: user.userId,
+              rejectionId: docket.rejectionId,
+              applicationId,
+            });
+            const oneFeaturesData = await OneFeature.findOne({
+              user: user.userId,
+              rejectionId: docket.rejectionId,
+              applicationId,
+            });
+            const novelData = await NovelFeature.findOne({
+              user: user.userId,
+              rejectionId: docket.rejectionId,
+              applicationId,
+            });
+            const dependentData = await DependentClaim.findOne({
+              user: user.userId,
+              rejectionId: docket.rejectionId,
+              applicationId,
+            });
+            const compositeData = await CompositeAmendment.findOne({
+              user: user.userId,
+              rejectionId: docket.rejectionId,
+              applicationId,
+            });
+            return {
+              ...docket.toObject(),
+              novelData: novelData ? novelData : {},
+              technicalData: technicalData ? technicalData : {},
+              dependentData: dependentData ? dependentData : {},
+              compositeData: compositeData ? compositeData : {},
+              oneFeaturesData: oneFeaturesData ? oneFeaturesData : {},
+            };
+          })
+        );
+      }
+
+      return applicationObj;
+    };
+
+    const applicationWithDockets = await getApplicationWithDockets();
+
+    return res.status(200).json({
+      status: "success",
+      message: "Updated Claims",
+      data: applicationWithDockets,
+    });
+  } catch (error) {
+    if (
+      error.message.includes("Failed to extract text") ||
+      error.message.includes("Failed to upload file to Mistral AI") ||
+      error.message.includes("Error parsing AI processing")
+    ) {
+      if (enviroment === "development") {
+        console.error(error);
+      }
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to process file content",
+      });
+    } else {
+      next(error);
+    }
+  }
+});
 
 router.post("/fetchSubjectDescription", verifyToken, async (req, res, next) => {
   try {

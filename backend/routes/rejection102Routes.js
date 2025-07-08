@@ -294,8 +294,6 @@ Would PHOSITA combine references to achieve this?
 Does this enable new functionality?
 Are there secondary indicia of non-obviousness?
 
-
-
 d) Selects the optimal novel feature
 
 Balance: novelty strength vs. claim scope preservation
@@ -342,7 +340,7 @@ STRATEGIC CLAIM AMENDMENT:
       }
     ]
   },
-  "amendment_strategy": "Explain how these amendments: (1) distinguish over prior art, (2) maintain broad scope, (3) have full spec support, (4) avoid legal issues"
+  "amendmentStrategy": "Explain how these amendments: (1) distinguish over prior art, (2) maintain broad scope, (3) have full spec support, (4) avoid legal issues"
 }
 \`\`\`
 IMPORTANT NOTE ON JSON DATA: Each of the json output – first, the comparison one should start with \`\`\`json and end with \`\`\`. Same for the next json output of amendment to start with \`\`\`json and end with \`\`\`.

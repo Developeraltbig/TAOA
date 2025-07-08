@@ -105,6 +105,10 @@ const applicationDetailsSchema = new mongoose.Schema(
         },
       },
     ],
+    viewTutorial: {
+      type: Boolean,
+      required: true,
+    },
   },
   {
     timestamps: true,
