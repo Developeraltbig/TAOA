@@ -9,8 +9,8 @@ import { generateToken } from "../libs/generateToken.js";
 import { verifyToken } from "../middlewares/verifyToken.js";
 import BlacklistedToken from "../models/BlacklistedToken.js";
 
-const router = express.Router();
 dotenv.config();
+const router = express.Router();
 const enviroment = process.env.NODE_ENV;
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;

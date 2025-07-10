@@ -54,7 +54,7 @@ async function searchRecords(
     return response.data;
   } catch (error) {
     if (enviroment === "development") {
-      console.error(`Error searching records: ${error.message}`);
+      console.error(`Error searching records: ${error}`);
     }
     return null;
   }
