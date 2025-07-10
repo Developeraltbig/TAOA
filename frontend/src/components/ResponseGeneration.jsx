@@ -13,6 +13,7 @@ const ResponseGeneration = forwardRef(
     {
       data,
       draftState,
+      showTutorial,
       expandedSection,
       rejections = [],
       setExpandedSection,
@@ -33,7 +34,7 @@ const ResponseGeneration = forwardRef(
       >
         <button
           onClick={() => {
-            if (allRejectionsFinalized) {
+            if (allRejectionsFinalized && !showTutorial) {
               setExpandedSection(isExpanded ? null : "response");
             }
           }}

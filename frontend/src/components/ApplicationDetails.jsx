@@ -3,7 +3,7 @@ import { formatDate } from "../helpers/dateFormatter";
 import { BookOpen, ExternalLink } from "lucide-react";
 import { setIsClaimStatusModalOpen } from "../store/slices/modalsSlice";
 
-const ApplicationDetails = ({ data }) => {
+const ApplicationDetails = ({ data, showTutorial }) => {
   const dispatch = useDispatch();
 
   if (!data) {
@@ -63,7 +63,11 @@ const ApplicationDetails = ({ data }) => {
               Claim Status
             </h4>
             <button
-              onClick={() => dispatch(setIsClaimStatusModalOpen(true))}
+              onClick={() => {
+                if (!showTutorial) {
+                  dispatch(setIsClaimStatusModalOpen(true));
+                }
+              }}
               className="font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
             >
               Check Claim Status

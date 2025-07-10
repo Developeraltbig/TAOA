@@ -60,9 +60,47 @@ const RejectionCard = ({
               {isFinalized ? <CheckCircle size={18} /> : index + 1}
             </div>
             <div className="min-w-0 flex-1">
-              <h4 className="font-semibold text-gray-900 truncate">
-                {rejection.rejectionType.split(",")[0]}
-              </h4>
+              <div className="flex items-center gap-4">
+                <h4 className="font-semibold text-gray-900 truncate">
+                  {rejection.rejectionType.split(",")[0].split("and")[0]}
+                </h4>
+                <span className="relative inline-flex p-[2px] rounded-full bg-white">
+                  {/* Gradient border */}
+                  <span
+                    className={`absolute inset-0 rounded-full ${
+                      isFinalized
+                        ? "bg-gradient-to-r from-green-400 to-emerald-500"
+                        : "bg-gradient-to-r from-amber-400 to-orange-500 animate-pulse"
+                    }`}
+                  />
+                  {/* Inner content */}
+                  <span
+                    className={`relative inline-flex items-center px-4 py-1.5 text-xs font-bold bg-white rounded-full ${
+                      isFinalized ? "text-green-700" : "text-amber-700"
+                    }`}
+                  >
+                    <div className="relative flex items-center justify-center mr-2">
+                      <span
+                        className={`relative z-10 block w-2 h-2 rounded-full ${
+                          isFinalized
+                            ? "bg-gradient-to-r from-green-400 to-emerald-500"
+                            : "bg-gradient-to-r from-amber-400 to-orange-500"
+                        }`}
+                      />
+                      {!isFinalized && (
+                        <>
+                          <span className="absolute w-2 h-2 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 animate-ping" />
+                          <span
+                            className="absolute w-3 h-3 rounded-full bg-orange-400 animate-ping opacity-40"
+                            style={{ animationDelay: "200ms" }}
+                          />
+                        </>
+                      )}
+                    </div>
+                    {isFinalized ? "Finalized" : "Not Finalized"}
+                  </span>
+                </span>
+              </div>
               <p className="text-sm text-gray-500 break-words">
                 Affects {rejection.claimsRejected?.length || 0} claims
                 {rejection.priorArtReferences?.length > 0 &&
@@ -115,7 +153,7 @@ const RejectionCard = ({
                 ) : (
                   <>
                     <span className="whitespace-nowrap">Begin Analysis</span>
-                    <i class="fa-solid fa-bolt text-xs sm:text-sm"></i>
+                    <i className="fa-solid fa-bolt text-xs sm:text-sm"></i>
                   </>
                 )}
               </button>

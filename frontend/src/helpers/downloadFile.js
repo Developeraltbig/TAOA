@@ -373,12 +373,9 @@ const generateDraftDocument = async (draftData) => {
           if (element && element.text) {
             sections.push(
               new Paragraph({
-                children: [
-                  createTextRun(`${index + 1}. `, { bold: true, size: 22 }), // Bold number
-                  createTextRun(String(element.text), { size: 22 }), // Regular text
-                ],
+                children: [createTextRun(String(element.text), { size: 22 })],
                 alignment: AlignmentType.JUSTIFIED,
-                indent: { left: 720 },
+                indent: { left: 400 },
                 spacing: { after: 150 },
                 keepTogether: true,
               })
@@ -399,15 +396,9 @@ const generateDraftDocument = async (draftData) => {
           if (element && element.text) {
             sections.push(
               new Paragraph({
-                children: [
-                  createTextRun(`${startIndex + index + 1}. `, {
-                    bold: true,
-                    size: 22,
-                  }),
-                  createTextRun(String(element.text), { size: 22 }),
-                ],
+                children: [createTextRun(String(element.text), { size: 22 })],
                 alignment: AlignmentType.JUSTIFIED,
-                indent: { left: 720 },
+                indent: { left: 400 },
                 spacing: { after: 150 },
                 keepTogether: true,
               })
@@ -468,6 +459,7 @@ const generateDraftDocument = async (draftData) => {
           ],
           alignment: AlignmentType.JUSTIFIED,
           spacing: { after: 200 },
+          keepNext: true,
           keepTogether: true,
         })
       );

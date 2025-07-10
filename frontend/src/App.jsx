@@ -9,6 +9,7 @@ import NovelFeatures from "./pages/NovelFeatures";
 import SidebarLayout from "./layouts/SidebarLayout";
 import DependentClaims from "./pages/DependentClaims";
 import UserInteraction from "./pages/UserInteraction";
+import ResetPassword from "./components/ResetPassword";
 import ProtectedRoutes from "./layouts/ProtectedRoutes";
 import CompositeAmendments from "./pages/CompositeAmendments";
 import TechnicalComparison from "./pages/TechnicalComparison";
@@ -16,7 +17,6 @@ import ApplicationsHistory from "./pages/ApplicationsHistory";
 import LayoutWithoutSidebar from "./layouts/LayoutWithoutSidebar";
 
 import "./App.css";
-import ResetPassword from "./components/ResetPassword";
 
 function App() {
   return (

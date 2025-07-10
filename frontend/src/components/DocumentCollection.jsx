@@ -10,6 +10,7 @@ const DocumentCollection = forwardRef(
       handleFile,
       isDragging,
       fileInputRef,
+      showTutorial,
       setIsDragging,
       expandedSection,
       allDocumentsReady,
@@ -87,7 +88,11 @@ const DocumentCollection = forwardRef(
         }`}
       >
         <button
-          onClick={() => setExpandedSection(isExpanded ? null : "documents")}
+          onClick={() => {
+            if (!showTutorial) {
+              setExpandedSection(isExpanded ? null : "documents");
+            }
+          }}
           className={`w-full p-6 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer ${
             isExpanded ? "rounded-t-2xl" : "rounded-2xl"
           }`}

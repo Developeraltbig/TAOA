@@ -6,6 +6,7 @@ const RejectionAnalysis = forwardRef(
   (
     {
       data,
+      showTutorial,
       expandedSection,
       setReasoningModal,
       allDocumentsReady,
@@ -34,7 +35,7 @@ const RejectionAnalysis = forwardRef(
       >
         <button
           onClick={() => {
-            if (allDocumentsReady) {
+            if (allDocumentsReady && !showTutorial) {
               setExpandedSection(isExpanded ? null : "rejections");
             }
           }}

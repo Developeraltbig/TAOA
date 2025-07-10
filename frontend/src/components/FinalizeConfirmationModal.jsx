@@ -119,7 +119,7 @@ const FinalizeConfirmationModal = ({
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 px-4 py-2.5 cursor-pointer bg-[#3586cb] hover:bg-[#2b6faa] text-white font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#3586cb]/30"
+            className="flex-1 px-4 py-2.5 cursor-pointer bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#3586cb]/30"
           >
             {confirmButtonText}
           </button>

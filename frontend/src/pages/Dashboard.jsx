@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import {
+  setIsApiFinalizing,
   setIsApplicationAnalysing,
   setIsApplicationUploading,
 } from "../store/slices/loadingSlice";
@@ -13,15 +14,16 @@ import { post } from "../services/ApiEndpoint";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import ApplicationHeader from "../components/ApplicationHeader";
+import DocumentAnalysisLoader from "../loaders/DocumentAnalysisLoader";
 import { clearShowState } from "../store/slices/applicationDocketsSlice";
 import { addOrUpdateApplication } from "../store/slices/latestApplicationsSlice";
-import ApplicationDetailsSkeleton from "../skeletons/ApplicationDetailsSkeleton";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const fileInputRef = useRef(null);
   const enviroment = import.meta.env.VITE_ENV;
+  const [response, setResponse] = useState({});
   const isApplicationAnalysing = useSelector(
     (state) => state.loading.isApplicationAnalysing
   );
@@ -30,6 +32,15 @@ const Dashboard = () => {
   );
   const authUser = useSelector((state) => state.user.authUser);
   const [applicationNumber, setApplicationNumber] = useState("");
+
+  const handleFinalizeAnalysis = () => {
+    dispatch(addOrUpdateApplication(response));
+    dispatch(setApplicationId(response.applicationId));
+    dispatch(setIsApplicationAnalysing(false));
+    dispatch(setIsApplicationUploading(false));
+    dispatch(setIsApiFinalizing(false));
+    navigate("/application");
+  };
 
   const handleFetchClick = async (e) => {
     e.preventDefault();
@@ -45,9 +56,8 @@ const Dashboard = () => {
         token: authUser.token,
         appNumber: applicationNumber,
       });
-      dispatch(addOrUpdateApplication(response.data.data));
-      dispatch(setApplicationId(response.data.data.applicationId));
-      navigate("/application");
+      setResponse(response.data.data);
+      dispatch(setIsApiFinalizing(true));
     } catch (error) {
       if (enviroment === "development") {
         console.log(error);
@@ -61,8 +71,8 @@ const Dashboard = () => {
       } else {
         toast.error("Internal server error! Please try again.");
       }
-    } finally {
       dispatch(setIsApplicationAnalysing(false));
+      dispatch(setIsApiFinalizing(false));
     }
   };
 
@@ -86,14 +96,10 @@ const Dashboard = () => {
     try {
       dispatch(setIsApplicationUploading(true));
       const response = await post("/application/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
       });
-
-      dispatch(addOrUpdateApplication(response.data.data));
-      dispatch(setApplicationId(response.data.data.applicationId));
-      navigate("/application");
+      setResponse(response.data.data);
+      dispatch(setIsApiFinalizing(true));
     } catch (error) {
       if (enviroment === "development") {
         console.log(error);
@@ -107,35 +113,12 @@ const Dashboard = () => {
       } else {
         toast.error("Internal server error! Please try again.");
       }
-    } finally {
       dispatch(setIsApplicationUploading(false));
+      dispatch(setIsApiFinalizing(false));
+    } finally {
       e.target.value = "";
     }
   };
-
-  useEffect(() => {
-    let toastId = null;
-
-    if (isApplicationAnalysing || isApplicationUploading) {
-      toastId = toast.info(
-        "Generating response. This process may take sometime...",
-        {
-          autoClose: false,
-          hideProgressBar: true,
-          closeOnClick: false,
-          pauseOnHover: false,
-          draggable: false,
-          theme: "light",
-        }
-      );
-    }
-
-    return () => {
-      if (toastId) {
-        toast.dismiss(toastId);
-      }
-    };
-  }, [isApplicationAnalysing, isApplicationUploading]);
 
   useEffect(() => {
     dispatch(clearShowState());
@@ -162,23 +145,19 @@ const Dashboard = () => {
                   value={applicationNumber}
                   onChange={(e) => setApplicationNumber(e.target.value)}
                   required
+                  disabled={isApplicationAnalysing || isApplicationUploading}
                 />
                 <button
                   type="submit"
-                  className="min-w-[100px] w-fit h-full py-2 px-4 sm:px-6 rounded-r-md cursor-pointer bg-[#0d9488] hover:bg-[#0f766e] font-semibold flex gap-2 justify-center items-center text-white shadow-md"
+                  className="min-w-[100px] w-fit h-full py-2 px-4 sm:px-6 rounded-r-md cursor-pointer bg-[#0d9488] hover:bg-[#0f766e] font-semibold flex gap-2 justify-center items-center text-white shadow-md hover:shadow-xl"
                   disabled={isApplicationAnalysing || isApplicationUploading}
                 >
                   {isApplicationAnalysing ? (
-                    <>
-                      <div className="w-6 h-6 border-4 border-t-gray-600 border-gray-50 rounded-full animate-spin"></div>
-                      <span>Analysing...</span>
-                    </>
+                    <div className="w-6 h-6 border-4 border-t-gray-600 border-gray-50 rounded-full animate-spin"></div>
                   ) : (
                     <>
-                      <>
-                        <span>Fetch</span>
-                        <i className="fa-solid fa-link"></i>
-                      </>
+                      <span>Fetch</span>
+                      <i className="fa-solid fa-link"></i>
                     </>
                   )}
                 </button>
@@ -202,21 +181,16 @@ const Dashboard = () => {
                 />
                 <button
                   type="button"
-                  className="w-full md:w-fit min-w-[150px] max-w-[300px] h-12 py-2 px-4 sm:px-6 rounded-md cursor-pointer bg-[#0284c7] hover:bg-[#026395] font-semibold flex gap-2 justify-center items-center text-white shadow-md"
+                  className="w-full md:w-fit min-w-[150px] max-w-[300px] h-12 py-2 px-4 sm:px-6 rounded-md cursor-pointer bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 font-semibold flex gap-2 justify-center items-center shadow-md hover:shadow-xl"
                   onClick={handleUploadClick}
                   disabled={isApplicationAnalysing || isApplicationUploading}
                 >
                   {isApplicationUploading ? (
-                    <>
-                      <div className="w-6 h-6 border-4 border-t-blue-600 border-gray-50 rounded-full animate-spin"></div>
-                      <span>Analysing...</span>
-                    </>
+                    <div className="w-6 h-6 border-4 border-t-gray-600 border-gray-50 rounded-full animate-spin"></div>
                   ) : (
                     <>
-                      <>
-                        <span>Upload OA</span>
-                        <i className="fa-solid fa-upload"></i>
-                      </>
+                      <span>Upload OA</span>
+                      <i className="fa-solid fa-upload"></i>
                     </>
                   )}
                 </button>
@@ -226,7 +200,10 @@ const Dashboard = () => {
         </section>
 
         {(isApplicationAnalysing || isApplicationUploading) && (
-          <ApplicationDetailsSkeleton />
+          <DocumentAnalysisLoader
+            isLoading={isApplicationAnalysing || isApplicationUploading}
+            onFinalPhaseReached={handleFinalizeAnalysis}
+          />
         )}
       </main>
     </div>

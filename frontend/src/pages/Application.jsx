@@ -46,7 +46,7 @@ import OtherRejectionsModal from "../components/OtherRejectionsModal";
 import ExaminerReasoningModal from "../components/ExaminerReasoningModal";
 import ApplicationDetailsSkeleton from "../skeletons/ApplicationDetailsSkeleton";
 
-import "../styles/animation.css";
+import "../styles/Application.css";
 
 const Application = () => {
   const navigate = useNavigate();
@@ -753,10 +753,14 @@ const Application = () => {
   useEffect(() => {
     if (allDocumentsReady && activeStep === 1) {
       setActiveStep(2);
-      setExpandedSection("rejections");
+      if (!showTutorial) {
+        setExpandedSection("rejections");
+      }
     } else if (allRejectionsFinalized && activeStep === 2) {
       setActiveStep(3);
-      setExpandedSection("response");
+      if (!showTutorial) {
+        setExpandedSection("response");
+      }
     }
   }, [allDocumentsReady, allRejectionsFinalized, activeStep]);
 
@@ -781,16 +785,17 @@ const Application = () => {
           <ApplicationDetailsSkeleton />
         ) : (
           <>
-            <ApplicationDetails data={data} />
+            <ApplicationDetails data={data} showTutorial={showTutorial} />
 
             <StepIndicator
               activeStep={activeStep}
-              allDocumentsReady={allDocumentsReady}
-              allRejectionsFinalized={allRejectionsFinalized}
               documentRef={documentRef}
-              rejectionRef={rejectionRef}
               responseRef={responseRef}
+              rejectionRef={rejectionRef}
+              showTutorial={showTutorial}
+              allDocumentsReady={allDocumentsReady}
               setExpandedSection={setExpandedSection}
+              allRejectionsFinalized={allRejectionsFinalized}
             />
 
             <div className="space-y-4">
@@ -798,6 +803,7 @@ const Application = () => {
                 data={data}
                 ref={documentRef}
                 handleFile={handleFile}
+                showTutorial={showTutorial}
                 fileInputRef={fileInputRef}
                 expandedSection={expandedSection}
                 handleViewDocumentClick={(e) => {
@@ -818,6 +824,7 @@ const Application = () => {
               <RejectionAnalysis
                 data={data}
                 ref={rejectionRef}
+                showTutorial={showTutorial}
                 expandedSection={expandedSection}
                 setReasoningModal={setReasoningModal}
                 allDocumentsReady={allDocumentsReady}
@@ -834,6 +841,7 @@ const Application = () => {
                 data={data}
                 ref={responseRef}
                 draftState={draftState}
+                showTutorial={showTutorial}
                 expandedSection={expandedSection}
                 rejections={data?.rejections || []}
                 setExpandedSection={setExpandedSection}
@@ -872,14 +880,16 @@ const Application = () => {
         onGenerate={handleGenerateDraft}
       />
 
-      <LatestClaimsModal
-        claims={latestClaim}
-        token={authUser.token}
-        isOpen={isLatestClaimsModalOpen}
-        applicationId={activeApplicationId}
-        finalizationStatus={finalizationStatus}
-        onClose={() => setIsLatestClaimsModalOpen(false)}
-      />
+      {isLatestClaimsModalOpen && (
+        <LatestClaimsModal
+          claims={latestClaim}
+          token={authUser.token}
+          isOpen={isLatestClaimsModalOpen}
+          applicationId={activeApplicationId}
+          finalizationStatus={finalizationStatus}
+          onClose={() => setIsLatestClaimsModalOpen(false)}
+        />
+      )}
 
       <ExaminerReasoningModal
         isOpen={reasoningModal.isOpen}

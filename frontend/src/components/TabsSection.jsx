@@ -1,49 +1,50 @@
+import {
+  Gem,
+  Goal,
+  Scale,
+  Network,
+  Combine,
+  MessagesSquare,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import { setDocketId } from "../store/slices/authUserSlice";
 import { setIsSidebarMenuVisible } from "../store/slices/modalsSlice";
 import { setShowDocket } from "../store/slices/applicationDocketsSlice";
-import {
-  GitBranch,
-  Layers,
-  FileText,
-  BarChart2,
-  Settings,
-  Users,
-} from "lucide-react";
 
 const TabsSection = ({ data, children }) => {
+  const classStyle = "w-5 h-5";
   const tabs = [
     {
       href: "/technicalcomparison",
       tabName: "Technical Comparison",
-      icon: <GitBranch className="w-3.5 h-3.5" />,
+      icon: <Scale className={classStyle} />,
     },
     {
       href: "/novelfeatures",
       tabName: "Novel Features",
-      icon: <Layers className="w-3.5 h-3.5" />,
+      icon: <Gem className={classStyle} />,
     },
     {
       href: "/dependentclaims",
       tabName: "Dependent Claims",
-      icon: <FileText className="w-3.5 h-3.5" />,
+      icon: <Network className={classStyle} />,
     },
     {
       href: "/onefeatures",
       tabName: "One Features",
-      icon: <BarChart2 className="w-3.5 h-3.5" />,
+      icon: <Goal className={classStyle} />,
     },
     {
       href: "/compositeamendments",
       tabName: "Composite Amendments",
-      icon: <Settings className="w-3.5 h-3.5" />,
+      icon: <Combine className={classStyle} />,
     },
     {
       href: "/userinteraction",
       tabName: "User Interaction",
-      icon: <Users className="w-3.5 h-3.5" />,
+      icon: <MessagesSquare className={classStyle} />,
     },
   ];
 
@@ -104,7 +105,7 @@ const TabsSection = ({ data, children }) => {
       {showDocket?.showTab && (
         <nav
           id={`docket-${data._id}-tabs`}
-          className="ml-8 mt-1 space-y-0.5"
+          className="ml-4 mt-1 space-y-0.5"
           role="navigation"
           aria-label={`Navigation tabs for claim ${data.rejectionType}`}
         >
@@ -131,7 +132,7 @@ const TabsSection = ({ data, children }) => {
                     aria-label={`${tab.tabName} ${isActive ? "(current)" : ""}`}
                   >
                     <span
-                      className={isActive ? "text-white" : "text-gray-400"}
+                      className={isActive ? "text-gray-100" : "text-gray-500"}
                       aria-hidden="true"
                     >
                       {tab.icon}

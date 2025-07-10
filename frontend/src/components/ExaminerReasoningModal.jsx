@@ -82,7 +82,13 @@ const ExaminerReasoningModal = ({
             </button>
           </div>
         </div>
-        <div className="p-6 overflow-y-auto max-h-[60vh]">
+        <div
+          className="p-6 overflow-y-auto max-h-[60vh]"
+          style={{
+            scrollbarWidth: "thin",
+            scrollbarColor: "#cbd5e1 #f1f1f1",
+          }}
+        >
           <div className="prose prose-sm max-w-none">
             <p
               className="text-gray-700 leading-relaxed whitespace-pre-wrap"

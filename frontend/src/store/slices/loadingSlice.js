@@ -6,6 +6,7 @@ const loadingSlice = createSlice({
     isDocketsAnalysing: {},
     isUserLoggingIn: false,
     isUserSigningUp: false,
+    isApiFinalizing: false,
     isUserLoggingOut: false,
     loadLatestApplications: false,
     isApplicationAnalysing: false,
@@ -21,6 +22,9 @@ const loadingSlice = createSlice({
     },
     setIsUserLoggingIn: (state, action) => {
       state.isUserLoggingIn = action.payload;
+    },
+    setIsApiFinalizing: (state, action) => {
+      state.isApiFinalizing = action.payload;
     },
     setIsUserLoggingOut: (state, action) => {
       state.isUserLoggingOut = action.payload;
@@ -51,6 +55,7 @@ const loadingSlice = createSlice({
 export const {
   setIsUserSigningUp,
   setIsUserLoggingIn,
+  setIsApiFinalizing,
   setIsUserLoggingOut,
   setIsDocketsAnalysing,
   clearIsDocketsAnalysing,

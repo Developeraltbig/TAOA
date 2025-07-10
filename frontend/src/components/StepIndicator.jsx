@@ -4,6 +4,7 @@ import { CheckCircle, Lock, FileText, Target, FileCheck } from "lucide-react";
 const StepIndicator = ({
   documentRef,
   responseRef,
+  showTutorial,
   rejectionRef,
   allDocumentsReady,
   setExpandedSection,
@@ -44,6 +45,10 @@ const StepIndicator = ({
   ];
 
   const scrollToSection = (ref, sectionKey) => {
+    if (showTutorial) {
+      return;
+    }
+
     setExpandedSection(sectionKey);
 
     requestAnimationFrame(() => {

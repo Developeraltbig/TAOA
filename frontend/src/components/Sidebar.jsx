@@ -19,7 +19,7 @@ import { setIsLatestApplicationLoading } from "../store/slices/loadingSlice";
 import { setLatestApplication } from "../store/slices/latestApplicationsSlice";
 import LatestApplicationSkeleton from "../skeletons/LatestApplicationSkeleton";
 
-import "../styles/sidebar.css";
+import "../styles/Sidebar.css";
 
 const Sidebar = () => {
   const location = useLocation();
@@ -206,7 +206,7 @@ const Sidebar = () => {
               {/* New TAOA Button */}
               <button
                 onClick={handleNewTAOAClick}
-                className="w-full bg-gradient-to-r from-teal-500 cursor-pointer to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white rounded-xl py-3 px-4 font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                className="w-full bg-gradient-to-r from-teal-500 cursor-pointer to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white rounded-xl py-3 px-4 font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
                 aria-label="Create new TAOA project"
               >
                 <Plus className="w-5 h-5" />
@@ -216,8 +216,13 @@ const Sidebar = () => {
 
             {/* Main Content */}
             <section
-              className="flex-1 overflow-y-auto p-4 px-6"
+              className="flex-1 overflow-y-auto p-4 px-6 shrink-0"
               aria-label="Projects list"
+              style={{
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+                overflow: "auto",
+              }}
             >
               {isLatestApplicationLoading ? (
                 <LatestApplicationSkeleton />

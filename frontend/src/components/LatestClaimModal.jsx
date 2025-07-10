@@ -1,13 +1,14 @@
 import { toast } from "react-toastify";
 import { useDispatch } from "react-redux";
 import { post } from "../services/ApiEndpoint";
-import { useEffect, useRef, useState } from "react";
 import ConfirmationModal from "./ConfirmationModal";
-import { formatTextToDelimiter } from "../helpers/formatText";
 import { clearUserSlice } from "../store/slices/authUserSlice";
-import { X, FileText, Edit, Save, XCircle } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { X, FileText, CheckCircle, Info, Loader2 } from "lucide-react";
 import { clearShowState } from "../store/slices/applicationDocketsSlice";
 import { updateApplication } from "../store/slices/latestApplicationsSlice";
+
+import "../styles/LatestClaimModal.css";
 
 const LatestClaimsModal = ({
   token,
@@ -18,37 +19,87 @@ const LatestClaimsModal = ({
   finalizationStatus,
 }) => {
   const dispatch = useDispatch();
-  const textareaRef = useRef(null);
+  const textareaRefs = useRef({});
   const enviroment = import.meta.env.VITE_ENV;
   const [isSaving, setIsSaving] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
-  const [currentClaims, setCurrentClaims] = useState(claims);
-  const [editingClaimIndex, setEditingClaimIndex] = useState(null);
-  const [editedClaimContent, setEditedClaimContent] = useState("");
+  const [currentClaims, setCurrentClaims] = useState([]);
+  const [originalClaims, setOriginalClaims] = useState([]);
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
+  const [isCloseConfirmationOpen, setIsCloseConfirmationOpen] = useState(false);
 
   const handleOpenConfirmationModal = () => setIsConfirmationModalOpen(true);
   const handleCloseConfirmationModal = () => {
     setIsConfirmationModalOpen(false);
   };
 
+  const handleCloseConfirmationModalOpen = () =>
+    setIsCloseConfirmationOpen(true);
+  const handleCloseConfirmationModalClose = () => {
+    setIsCloseConfirmationOpen(false);
+  };
+
+  const adjustTextareaHeights = useCallback(() => {
+    Object.keys(textareaRefs.current).forEach((key) => {
+      const textarea = textareaRefs.current[key];
+      if (textarea) {
+        textarea.style.height = "auto";
+        textarea.style.height = textarea.scrollHeight + 10 + "px";
+      }
+    });
+  }, []);
+
   useEffect(() => {
-    setCurrentClaims(claims);
+    const claimsContent = claims.map((claim) => {
+      const parts = claim.split(". ");
+      return parts.slice(1).join(". ");
+    });
+    setCurrentClaims(claimsContent);
+    setOriginalClaims(claimsContent);
   }, [claims]);
 
+  useEffect(() => {
+    const hasAnyChanges = currentClaims.some(
+      (claim, index) => claim !== originalClaims[index]
+    );
+    setHasChanges(hasAnyChanges);
+  }, [currentClaims, originalClaims]);
+
+  useEffect(() => {
+    if (isVisible && currentClaims.length > 0) {
+      setTimeout(adjustTextareaHeights, 50);
+    }
+  }, [currentClaims, isVisible, adjustTextareaHeights]);
+
   const handleConfirmation = async () => {
-    setIsConfirmationModalOpen(false);
+    handleCloseConfirmationModal();
+    await saveChanges();
+  };
+
+  const handleCloseConfirmation = async () => {
+    handleCloseConfirmationModalClose();
+    onClose();
+  };
+
+  const saveChanges = async () => {
     try {
       setIsSaving(true);
+      const fullClaims = currentClaims.map((content, index) => {
+        const originalClaim = claims[index];
+        const claimNumber = originalClaim.split(". ")[0];
+        return `${claimNumber}. ${content}`;
+      });
+
       const response = await post("/application/updateClaims", {
         token,
         applicationId,
-        claims: currentClaims,
+        claims: fullClaims,
       });
       dispatch(updateApplication(response.data.data));
-      setEditingClaimIndex(null);
-      setEditedClaimContent("");
+      toast.success("Claims updated successfully");
+      onClose();
     } catch (error) {
       if (enviroment === "development") {
         console.log(error);
@@ -67,94 +118,41 @@ const LatestClaimsModal = ({
     }
   };
 
-  const formatClaim = (claim) => {
-    const isCancelled = claim.toLowerCase().includes("(cancelled");
-    const parts = claim.split(". ");
-    const claimNumber = parts[0];
-    const claimContent = parts.slice(1).join(". ");
-    return { claimNumber, claimContent, isCancelled };
-  };
-
-  const getClaim = (text) => {
-    const parts = text.split(". ");
-    return parts.length > 1 ? parts.slice(1).join(". ") : "";
-  };
-
-  const handleEditClick = (index, currentContent) => {
-    setEditingClaimIndex(index);
-    setEditedClaimContent(currentContent);
-  };
-
-  const handleClaimContentChange = (e) => {
-    setEditedClaimContent(e.target.value);
-  };
-
-  const handleSaveClick = async (claimNumber) => {
-    try {
-      const updatedClaimString = `${claimNumber}. ${editedClaimContent}`;
-      const updatedClaimsArray = [...currentClaims];
-      updatedClaimsArray[editingClaimIndex] = updatedClaimString;
-
-      setCurrentClaims(updatedClaimsArray);
-
-      if (
-        finalizationStatus &&
-        !Object.keys(finalizationStatus.rejections).length
-      ) {
-        setIsSaving(true);
-        const response = await post("/application/updateClaims", {
-          token,
-          claims: updatedClaimsArray,
-          applicationId,
-        });
-        dispatch(updateApplication(response.data.data));
-        setEditingClaimIndex(null);
-        setEditedClaimContent("");
-      } else if (
-        finalizationStatus &&
-        Object.keys(finalizationStatus.rejections).length
-      ) {
-        handleOpenConfirmationModal();
-      }
-    } catch (error) {
-      if (enviroment === "development") {
-        console.log(error);
-      }
-      if (error.status === 401 || error.status === 404) {
-        dispatch(clearShowState());
-        dispatch(clearUserSlice());
-      } else if (error.status === 400) {
-        const message = error?.response?.data?.message;
-        toast.error(message);
-      } else {
-        toast.error("Internal server error! Please try again.");
-      }
-    } finally {
-      if (!isConfirmationModalOpen) {
-        setIsSaving(false);
-      }
+  const handleSaveClick = async () => {
+    if (
+      finalizationStatus &&
+      Object.keys(finalizationStatus.rejections).length
+    ) {
+      handleOpenConfirmationModal();
+    } else {
+      await saveChanges();
     }
   };
 
-  const handleCancelClick = () => {
-    setEditingClaimIndex(null);
-    setEditedClaimContent("");
+  const handleClaimContentChange = (index, value) => {
+    const updatedClaims = [...currentClaims];
+    updatedClaims[index] = value;
+    setCurrentClaims(updatedClaims);
+
+    const textarea = textareaRefs.current[index];
+    if (textarea) {
+      textarea.style.height = "auto";
+      textarea.style.height = textarea.scrollHeight + 10 + "px";
+    }
   };
 
   const handleClose = () => {
     if (isSaving) {
       return;
     }
+
+    if (hasChanges) {
+      handleCloseConfirmationModalOpen();
+      return;
+    }
+
     onClose();
   };
-
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height =
-        textareaRef.current.scrollHeight + 10 + "px";
-    }
-  }, [editedClaimContent, editingClaimIndex]);
 
   useEffect(() => {
     if (isOpen) {
@@ -166,12 +164,12 @@ const LatestClaimsModal = ({
       });
     } else {
       setIsVisible(false);
-      setTimeout(() => setIsRendering(false), 300);
-      setEditingClaimIndex(null);
-      setEditedClaimContent("");
-      setCurrentClaims(claims);
+      setTimeout(() => {
+        setIsRendering(false);
+        setHasChanges(false);
+      }, 300);
     }
-  }, [isOpen, claims]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (isVisible) {
@@ -195,7 +193,7 @@ const LatestClaimsModal = ({
         onClick={handleClose}
       >
         <div
-          className={`bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[85vh] flex flex-col transform transition-all duration-300 ${
+          className={`bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col transform transition-all duration-300 ${
             isVisible
               ? "opacity-100 translate-y-0 scale-100"
               : "opacity-0 -translate-y-16 scale-95"
@@ -203,128 +201,119 @@ const LatestClaimsModal = ({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex justify-between items-center p-6 border-b border-gray-100">
-            <div>
-              <h3 className="text-2xl font-bold text-gray-900">
-                Latest Claims
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                {currentClaims.length} claim
-                {currentClaims.length !== 1 ? "s" : ""} total
-              </p>
+          <div className="relative flex-shrink-0">
+            <div className="flex justify-between items-center p-6 pb-4">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">
+                  Latest Claims
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {claims.length} claim{claims.length !== 1 ? "s" : ""}
+                  {claims.length ? " • Edit any claim below" : ""}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="text-gray-400 hover:text-gray-600 cursor-pointer hover:bg-gray-100 rounded-lg p-2 transition-all duration-200"
+                onClick={handleClose}
+                aria-label="Close"
+                disabled={isSaving}
+              >
+                <X size={20} />
+              </button>
             </div>
-            <button
-              type="button"
-              className="text-gray-400 hover:text-gray-600 cursor-pointer hover:bg-gray-100 rounded-lg p-2 transition-all duration-200"
-              onClick={handleClose}
-              aria-label="Close"
-              disabled={isSaving}
-            >
-              <X size={20} />
-            </button>
+
+            {/* Info Banner */}
+            {hasChanges && (
+              <div className="mx-6 mb-4 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3 animate-fade-in-down">
+                <Info className="text-blue-600 mt-0.5" size={18} />
+                <div className="flex-1">
+                  <p className="text-sm text-blue-800">
+                    You have unsaved changes. Click the save button to update
+                    your claims.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Content with scrolling */}
           <div
-            className="flex-1 overflow-y-auto px-6 py-4"
+            className="flex-1 min-h-0 px-6 py-2 overflow-y-auto"
             style={{
               scrollbarWidth: "thin",
-              scrollbarColor: "#cbd5e1 #f1f1f1",
+              scrollbarColor: "#cbd5e1 #f1f5f9",
             }}
           >
-            {currentClaims.length > 0 ? (
-              <div className="space-y-3">
-                {currentClaims.map((claim, index) => {
-                  const { claimNumber, claimContent, isCancelled } =
-                    formatClaim(claim);
-
-                  const isEditing = editingClaimIndex === index;
+            {claims.length > 0 ? (
+              <div className="space-y-4">
+                {claims.map((claim, index) => {
+                  const claimNumber = claim.split(". ")[0];
+                  const isChanged =
+                    currentClaims[index] !== originalClaims[index];
 
                   return (
                     <div
                       key={index}
-                      className={`relative p-4 rounded-lg transition-all duration-200 ${
-                        isCancelled
-                          ? "bg-gray-50 hover:bg-gray-100 border border-gray-200"
-                          : "bg-blue-50 hover:bg-blue-100 border border-blue-200"
+                      className={`group relative transition-all duration-200 ${
+                        isChanged
+                          ? "ring-2 ring-blue-400 ring-offset-2 rounded-xl animate-ring-pulse"
+                          : ""
                       }`}
                     >
-                      <div className="flex gap-3">
-                        <div
-                          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                            isCancelled
-                              ? "bg-gray-200 text-gray-600"
-                              : "bg-blue-200 text-blue-700"
-                          }`}
-                        >
-                          {claimNumber}
-                        </div>
-                        <div className="flex-1">
-                          {isEditing ? (
-                            <>
-                              <textarea
-                                ref={textareaRef}
-                                className="w-full bg-white p-2 border border-gray-300 rounded-md text-sm leading-relaxed overflow-hidden resize-none"
-                                value={editedClaimContent}
-                                onChange={handleClaimContentChange}
-                              />
-                              <div className="flex justify-end gap-2 mt-2">
-                                <button
-                                  type="button"
-                                  onClick={handleCancelClick}
-                                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
-                                  disabled={isSaving}
-                                >
-                                  <XCircle className="h-4 w-4 mr-2" /> Cancel
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleSaveClick(claimNumber)}
-                                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 cursor-pointer"
-                                  disabled={
-                                    getClaim(
-                                      currentClaims[editingClaimIndex]
-                                    ) === editedClaimContent || isSaving
-                                  }
-                                >
-                                  <Save className="h-4 w-4 mr-2" />{" "}
-                                  {isSaving ? "Saving..." : "Save"}
-                                </button>
-                              </div>
-                            </>
-                          ) : (
-                            <div className="flex justify-between items-start">
-                              <p
-                                className={`flex-1 text-sm leading-relaxed ${
-                                  isCancelled
-                                    ? "text-gray-600"
-                                    : "text-gray-800"
-                                }`}
-                                dangerouslySetInnerHTML={{
-                                  __html: formatTextToDelimiter(claimContent),
-                                }}
-                              ></p>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleEditClick(index, claimContent)
-                                }
-                                className="ml-4 flex-shrink-0 p-1.5 rounded-md bg-white text-black border border-gray-300 shadow-sm
-                                             hover:text-blue-600 hover:border-blue-300 cursor-pointer"
-                                aria-label="Edit claim"
-                                title="Edit Claim"
-                                disabled={isSaving}
-                              >
-                                <Edit size={16} />
-                              </button>
-                            </div>
-                          )}
+                      <div
+                        className={`relative p-5 rounded-xl transition-all duration-200 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 ${
+                          !isChanged ? "hover:shadow-md" : "shadow-md"
+                        }`}
+                      >
+                        <div className="flex gap-4">
+                          {/* Claim Number Badge */}
+                          <div
+                            className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shadow-sm ${
+                              isChanged
+                                ? "bg-blue-500 text-white"
+                                : "bg-white text-blue-700 border border-blue-200"
+                            }`}
+                          >
+                            {claimNumber}
+                          </div>
 
-                          {isCancelled && !isEditing && (
-                            <span className="inline-block mt-2 text-xs font-medium text-gray-500 bg-gray-200 px-2 py-1 rounded">
-                              Cancelled
-                            </span>
-                          )}
+                          {/* Editable Content */}
+                          <div className="flex-1">
+                            <textarea
+                              ref={(el) => {
+                                textareaRefs.current[index] = el;
+                                if (el && currentClaims[index]) {
+                                  setTimeout(() => {
+                                    el.style.height = "auto";
+                                    el.style.height =
+                                      el.scrollHeight + 10 + "px";
+                                  }, 0);
+                                }
+                              }}
+                              className={`w-full bg-white/80 backdrop-blur-sm p-4 border rounded-lg text-sm leading-relaxed resize-none transition-all duration-200 
+                                  ${
+                                    isChanged
+                                      ? "border-blue-400 shadow-sm"
+                                      : "border-gray-200 hover:border-gray-300 focus:border-blue-400"
+                                  } focus:outline-none focus:ring-2 focus:ring-blue-400/20`}
+                              value={currentClaims[index] || ""}
+                              onChange={(e) =>
+                                handleClaimContentChange(index, e.target.value)
+                              }
+                              placeholder="Enter claim content..."
+                              disabled={isSaving}
+                            />
+
+                            {/* Status Badges */}
+                            <div className="flex items-center gap-2 mt-3">
+                              {isChanged && (
+                                <span className="inline-block text-xs font-medium text-blue-600 bg-blue-100 px-3 py-1 rounded-full animate-slide-in-left">
+                                  Modified
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -332,29 +321,79 @@ const LatestClaimsModal = ({
                 })}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <FileText className="w-8 h-8 text-gray-400" />
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <FileText className="w-10 h-10 text-gray-400" />
                 </div>
-                <p className="text-gray-500 text-center">
-                  No latest claims available.
+                <p className="text-gray-500 text-center text-lg">
+                  No claims available.
                 </p>
               </div>
             )}
           </div>
 
-          {/* Footer */}
-          <div className="flex justify-end p-6 border-t border-gray-100">
-            <button
-              onClick={handleClose}
-              className="px-6 py-2.5 bg-blue-600 cursor-pointer text-white rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
-              disabled={isSaving}
-            >
-              Close
-            </button>
+          {/* Footer with Save Button - Enhanced visibility */}
+          <div
+            className={`flex-shrink-0 flex justify-between items-center p-6 pt-4 border-t border-gray-100 rounded-b-2xl ${
+              hasChanges
+                ? "bg-gradient-to-r from-blue-50 to-indigo-50"
+                : "bg-gray-50/50"
+            }`}
+          >
+            <div className="text-sm text-gray-600">
+              {hasChanges && (
+                <div className="flex items-center gap-2 animate-fade-in-down">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <span className="font-medium text-blue-600">
+                    {
+                      currentClaims.filter(
+                        (claim, index) => claim !== originalClaims[index]
+                      ).length
+                    }{" "}
+                    claim(s) modified
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="px-6 py-2.5 bg-white text-gray-700 cursor-pointer border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 font-medium shadow-sm"
+                disabled={isSaving}
+              >
+                Close
+              </button>
+              {hasChanges && (
+                <button
+                  type="button"
+                  onClick={handleSaveClick}
+                  disabled={isSaving}
+                  className={`relative inline-flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium shadow-lg transition-all duration-200 animate-scale-in
+                      ${
+                        isSaving
+                          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                          : "bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 hover:shadow-xl transform hover:scale-105 cursor-pointer"
+                      }`}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={18} />
+                      <span>Save Changes</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
+
       <ConfirmationModal
         isLatestOpen={isVisible}
         isOpen={isConfirmationModalOpen}
@@ -363,6 +402,17 @@ const LatestClaimsModal = ({
         title="Are you sure?"
         message="Uploading a new claim file will regenerate the office action analysis including the suggested claim amendment."
         confirmButtonText="Ok"
+        cancelButtonText="Cancel"
+      />
+
+      <ConfirmationModal
+        isLatestOpen={isVisible}
+        isOpen={isCloseConfirmationOpen}
+        onClose={handleCloseConfirmationModalClose}
+        onConfirm={handleCloseConfirmation}
+        title="Are you sure?"
+        message="You have unsaved changes. Are you sure you want to close?"
+        confirmButtonText="Close"
         cancelButtonText="Cancel"
       />
     </>

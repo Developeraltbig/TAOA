@@ -19,6 +19,7 @@ import OrbitingRingsLoader from "../loaders/OrbitingRingsLoader";
 import DocketsContentPanel from "../components/DocketsContentPanel";
 import DocketsHeaderSection from "../components/DocketsHeaderSection";
 import DocketsToggleButtons from "../components/DocketsToggleButtons";
+import { updateDocketData } from "../store/slices/latestApplicationsSlice";
 
 const getPanel = (chatHistory) => {
   return chatHistory[0]?.text.includes("basis") ? "right" : "left";
@@ -251,7 +252,7 @@ const UserInteraction = () => {
 
     const aiMessage = {
       id: Date.now() + 1,
-      text: "Analysis completed. View the results in the left panel.",
+      text: "Analysis completed. View the results in the response panel.",
       sender: "ai",
       timestamp: new Date().toISOString(),
     };

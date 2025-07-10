@@ -1,12 +1,12 @@
 import TabsSection from "./TabsSection";
 import { useEffect, useState } from "react";
-import { ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   clearDocketState,
   setShowApplication,
 } from "../store/slices/applicationDocketsSlice";
 import { useDispatch, useSelector } from "react-redux";
+import { ClipboardX, ChevronRight } from "lucide-react";
 import { setIsSidebarMenuVisible } from "../store/slices/modalsSlice";
 import { setDocketId, setApplicationId } from "../store/slices/authUserSlice";
 
@@ -130,8 +130,9 @@ const DocketsSection = ({ data, children }) => {
                         }`}
                         aria-hidden="true"
                       />
-                      <div className="flex-1 text-left min-w-0">
-                        <p className="text-sm font-medium text-gray-700 truncate">
+                      <div className="flex-1 text-left min-w-0 flex items-center gap-2 text-gray-700">
+                        <ClipboardX className="w-4.5 h-4.5 shrink-0" />
+                        <p className="text-sm font-medium truncate">
                           § {docket.rejectionType} - CLM(
                           {formatClaims(docket.rejectedClaims)})
                         </p>

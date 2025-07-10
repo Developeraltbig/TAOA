@@ -79,7 +79,7 @@ const ConfirmationModal = ({
         <div className="flex flex-col space-y-3 w-full">
           <button
             onClick={onConfirm}
-            className="w-full px-4 py-3 bg-[#3586cb] hover:bg-[#2b6faa] text-white font-medium rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75 transition-colors duration-200 cursor-pointer"
+            className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 font-medium rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75 transition-colors duration-200 cursor-pointer"
           >
             {confirmButtonText}
           </button>

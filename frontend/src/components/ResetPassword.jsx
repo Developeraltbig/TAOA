@@ -1,12 +1,12 @@
+import {
+  setResetPasswordToken,
+  setIsForgotPasswordModalOpen,
+} from "../store/slices/modalsSlice";
 import { toast } from "react-toastify";
 import { useDispatch } from "react-redux";
 import { useState, useEffect } from "react";
 import { get } from "../services/ApiEndpoint";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  setIsForgotPasswordModalOpen,
-  setResetPasswordToken,
-} from "../store/slices/modalsSlice";
 
 const ResetPassword = () => {
   const { token } = useParams();

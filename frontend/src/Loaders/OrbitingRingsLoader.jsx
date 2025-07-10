@@ -1,4 +1,4 @@
-import "./OrbitingRingsLoader.css";
+import "../styles/OrbitingRingsLoader.css";
 
 const OrbitingRingsLoader = ({ color }) => {
   return (
